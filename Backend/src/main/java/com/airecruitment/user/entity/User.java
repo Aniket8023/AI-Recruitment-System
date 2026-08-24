@@ -38,13 +38,16 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private UserRole role;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private AccountStatus status;
+    private AccountStatus status = AccountStatus.ACTIVE;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean emailVerified = false;
 
+    @Column(length = 255)
     private String profileImageUrl;
 
     private LocalDateTime lastLogin;
