@@ -1,13 +1,16 @@
 package com.airecruitment.match.serviceimpl;
 
+import com.airecruitment.assessment.entity.Assessment;
+import com.airecruitment.assessment.entity.AssessmentResult;
+import com.airecruitment.assessment.repository.AssessmentRepository;
+import com.airecruitment.assessment.repository.AssessmentResultRepository;
 import com.airecruitment.common.enums.MatchStatus;
+import com.airecruitment.interview.entity.InterviewResult;
+import com.airecruitment.interview.repository.InterviewResultRepository;
 import com.airecruitment.job.entity.Job;
 import com.airecruitment.job.repository.JobRepository;
 import com.airecruitment.match.client.AiMatchingClient;
-import com.airecruitment.match.dto.CandidateDetailResponse;
-import com.airecruitment.match.dto.CandidateRankingResponse;
-import com.airecruitment.match.dto.JobMatchResponse;
-import com.airecruitment.match.dto.RecruiterDashboardResponse;
+import com.airecruitment.match.dto.*;
 import com.airecruitment.match.entity.JobMatch;
 import com.airecruitment.match.repository.JobMatchRepository;
 import com.airecruitment.match.service.JobMatchingService;
@@ -16,6 +19,7 @@ import com.airecruitment.resume.entity.ResumeAnalysis;
 import com.airecruitment.resume.repository.ResumeAnalysisRepository;
 import com.airecruitment.resume.repository.ResumeRepository;
 import com.airecruitment.user.entity.User;
+import com.airecruitment.user.repository.UserRepository;
 import com.google.genai.types.Candidate;
 
 import lombok.RequiredArgsConstructor;
@@ -40,6 +44,13 @@ public class JobMatchingServiceImpl
 
     private final AiMatchingClient aiMatchingClient;
 
+    private final UserRepository userRepository;
+
+    private final AssessmentRepository assessmentRepository;
+
+    private final AssessmentResultRepository assessmentResultRepository;
+
+    private final InterviewResultRepository interviewResultRepository;
 
     @Override
     @Transactional
@@ -634,5 +645,194 @@ public class JobMatchingServiceImpl
 
                 resume.getSummary()
         );
+
+
+    }
+
+    @Override
+    public CandidateEvaluationResponse getCandidateEvaluation(
+            Long jobId,
+            Long candidateId,
+            Long resumeId) {
+
+        User candidate =
+                userRepository.findById(candidateId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Candidate not found."
+                                )
+                        );
+
+        Job job =
+                jobRepository.findById(jobId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job not found."
+                                )
+                        );
+
+        Resume resume =
+                resumeRepository.findById(resumeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Resume not found."
+                                )
+                        );
+
+        if (!resume.getCandidate()
+                .getId()
+                .equals(candidateId)) {
+
+            throw new RuntimeException(
+                    "Resume does not belong to candidate."
+            );
+        }
+
+        JobMatch jobMatch =
+                jobMatchRepository
+                        .findByJobAndResume(job, resume)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job match not found."
+                                )
+                        );
+
+        Assessment assessment =
+                assessmentRepository
+                        .findByCandidateAndJobAndResume(
+                                candidate,
+                                job,
+                                resume
+                        )
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Assessment not found."
+                                )
+                        );
+
+        AssessmentResult assessmentResult =
+                assessmentResultRepository
+                        .findByAssessment(assessment)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Assessment result not found."
+                                )
+                        );
+
+        InterviewResult interviewResult =
+                interviewResultRepository
+                        .findByCandidateAndJob(
+                                candidate,
+                                job
+                        )
+                        .orElse(null);
+
+        Double interviewScore = null;
+        String interviewRecommendation = null;
+
+        if (interviewResult != null) {
+
+            interviewScore =
+                    interviewResult.getOverallScore();
+
+            interviewRecommendation =
+                    interviewResult.getRecommendation();
+        }
+
+        String finalRecommendation;
+
+        if (!Boolean.TRUE.equals(
+                assessmentResult.getPassed())) {
+
+            finalRecommendation = "REJECTED";
+
+        } else if (interviewResult == null) {
+
+            finalRecommendation = "INTERVIEW_PENDING";
+
+        } else if ("SELECT".equalsIgnoreCase(
+                interviewResult.getRecommendation())) {
+
+            finalRecommendation = "SHORTLISTED";
+
+        } else if ("CONSIDER".equalsIgnoreCase(
+                interviewResult.getRecommendation())) {
+
+            finalRecommendation = "CONSIDER";
+
+        } else {
+
+            finalRecommendation = "REJECTED";
+        }
+
+        if (jobMatch != null) {
+
+            switch (finalRecommendation) {
+
+                case "SHORTLISTED" ->
+                        jobMatch.setStatus(
+                                MatchStatus.SHORTLISTED
+                        );
+
+                case "REJECTED" ->
+                        jobMatch.setStatus(
+                                MatchStatus.REJECTED
+                        );
+
+                case "INTERVIEW_PENDING",
+                     "CONSIDER" ->
+                        jobMatch.setStatus(
+                                MatchStatus.PENDING
+                        );
+            }
+
+            jobMatchRepository.save(jobMatch);
+        }
+
+        return CandidateEvaluationResponse.builder()
+
+                .candidateId(candidateId)
+
+                .jobId(jobId)
+
+                .resumeId(resumeId)
+
+                .candidateName(
+                        candidate.getFullName()
+                )
+
+                .jobTitle(
+                        job.getTitle()
+                )
+
+                .matchScore(
+                        jobMatch.getMatchScore()
+                )
+
+                .assessmentScore(
+                        assessmentResult.getOverallScore()
+                )
+
+                .assessmentPassed(
+                        assessmentResult.getPassed()
+                )
+
+                .interviewScore(
+                        interviewScore
+                )
+
+                .interviewRecommendation(
+                        interviewRecommendation
+                )
+
+                .finalRecommendation(
+                        finalRecommendation
+                )
+
+                .status(
+                        jobMatch.getStatus().name()
+                )
+
+                .build();
     }
 }

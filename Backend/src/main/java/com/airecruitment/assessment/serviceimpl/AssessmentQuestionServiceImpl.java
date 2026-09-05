@@ -164,6 +164,10 @@ public class AssessmentQuestionServiceImpl
 
                             .questionOrder(i + 1)
 
+                            .assessmentType(
+                                    assessment.getType()
+                            )
+
                             .build();
 
 

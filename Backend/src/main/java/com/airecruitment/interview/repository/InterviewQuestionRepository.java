@@ -14,4 +14,14 @@ public interface InterviewQuestionRepository
             Job job,
             Resume resume
     );
+
+    List<InterviewQuestion> findByJobIdAndResumeId(
+            Long jobId,
+            Long resumeId
+    );
+
+    long countByJobIdAndResumeId(
+            Long jobId,
+            Long resumeId
+    );
 }

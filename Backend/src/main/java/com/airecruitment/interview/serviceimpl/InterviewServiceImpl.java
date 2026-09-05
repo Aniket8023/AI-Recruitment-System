@@ -1,30 +1,36 @@
 package com.airecruitment.interview.serviceimpl;
 
 import com.airecruitment.ai.client.AiClient;
+import com.airecruitment.assessment.entity.Assessment;
+import com.airecruitment.assessment.entity.AssessmentResult;
+import com.airecruitment.assessment.repository.AssessmentRepository;
+import com.airecruitment.assessment.repository.AssessmentResultRepository;
+import com.airecruitment.common.enums.MatchStatus;
 import com.airecruitment.common.exception.InterviewNotEligibleException;
 import com.airecruitment.interview.dto.InterviewEvaluationResponse;
+import com.airecruitment.interview.dto.InterviewQuestionResponse;
 import com.airecruitment.interview.dto.InterviewQuestionsResponse;
 import com.airecruitment.interview.dto.InterviewResultResponse;
 import com.airecruitment.interview.entity.InterviewAnswer;
 import com.airecruitment.interview.entity.InterviewQuestion;
+import com.airecruitment.interview.entity.InterviewResult;
 import com.airecruitment.interview.repository.InterviewAnswerRepository;
 import com.airecruitment.interview.repository.InterviewQuestionRepository;
+import com.airecruitment.interview.repository.InterviewResultRepository;
 import com.airecruitment.interview.service.InterviewService;
 import com.airecruitment.job.entity.Job;
 import com.airecruitment.job.repository.JobRepository;
+import com.airecruitment.match.entity.JobMatch;
+import com.airecruitment.match.repository.JobMatchRepository;
 import com.airecruitment.resume.entity.Resume;
 import com.airecruitment.resume.repository.ResumeRepository;
 import com.airecruitment.user.entity.User;
 import com.airecruitment.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.airecruitment.interview.entity.InterviewResult;
-import com.airecruitment.interview.repository.InterviewResultRepository;
+
+
 import java.util.List;
-import com.airecruitment.assessment.entity.Assessment;
-import com.airecruitment.assessment.entity.AssessmentResult;
-import com.airecruitment.assessment.repository.AssessmentRepository;
-import com.airecruitment.assessment.repository.AssessmentResultRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +54,9 @@ public class InterviewServiceImpl implements InterviewService {
 
     private final AssessmentResultRepository assessmentResultRepository;
 
+    private final JobMatchRepository jobMatchRepository;
+
+
     // =========================================================
     // GENERATE INTERVIEW QUESTIONS
     // =========================================================
@@ -57,7 +66,6 @@ public class InterviewServiceImpl implements InterviewService {
             Long jobId,
             Long candidateId,
             Long resumeId) {
-
 
         // =========================================================
         // 0. CHECK ASSESSMENT ELIGIBILITY
@@ -70,32 +78,51 @@ public class InterviewServiceImpl implements InterviewService {
                         resumeId
                 );
 
-        if (!Boolean.TRUE.equals(assessmentResult.getPassed())) {
+        if (!Boolean.TRUE.equals(
+                assessmentResult.getPassed())) {
 
             throw new InterviewNotEligibleException(
-                    "Candidate is not eligible for the interview. Assessment score: "
+                    "Candidate is not eligible for the interview. "
+                            + "Assessment score: "
                             + assessmentResult.getOverallScore()
                             + "%. Minimum passing score is 60%."
             );
         }
 
 
-        // 1. Find Job
-        Job job = jobRepository.findById(jobId)
-                .orElseThrow(() ->
-                        new RuntimeException("Job not found.")
-                );
+        // =========================================================
+        // 1. FIND JOB
+        // =========================================================
+
+        Job job =
+                jobRepository.findById(jobId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job not found."
+                                )
+                        );
 
 
-        // 2. Find Resume
-        Resume resume = resumeRepository.findById(resumeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Resume not found.")
-                );
+        // =========================================================
+        // 2. FIND RESUME
+        // =========================================================
+
+        Resume resume =
+                resumeRepository.findById(resumeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Resume not found."
+                                )
+                        );
 
 
-        // 3. Validate candidate
-        if (!resume.getCandidate().getId().equals(candidateId)) {
+        // =========================================================
+        // 3. VALIDATE CANDIDATE
+        // =========================================================
+
+        if (!resume.getCandidate()
+                .getId()
+                .equals(candidateId)) {
 
             throw new RuntimeException(
                     "Resume does not belong to the candidate."
@@ -103,11 +130,42 @@ public class InterviewServiceImpl implements InterviewService {
         }
 
 
-        // 4. Build prompt
-        String prompt = buildInterviewPrompt(job, resume);
+        // =========================================================
+        // 4. PREVENT DUPLICATE QUESTION GENERATION
+        // =========================================================
+
+        List<InterviewQuestion> existingQuestions =
+                interviewQuestionRepository
+                        .findByJobIdAndResumeId(
+                                job.getId(),
+                                resume.getId()
+                        );
 
 
-        // 5. Generate questions using AI
+        if (!existingQuestions.isEmpty()) {
+
+            throw new RuntimeException(
+                    "Interview questions have already been generated "
+                            + "for this candidate and job."
+            );
+        }
+
+
+        // =========================================================
+        // 5. BUILD PROMPT
+        // =========================================================
+
+        String prompt =
+                buildInterviewPrompt(
+                        job,
+                        resume
+                );
+
+
+        // =========================================================
+        // 6. GENERATE QUESTIONS USING AI
+        // =========================================================
+
         InterviewQuestionsResponse response =
                 aiClient.generateInterviewQuestions(
                         prompt,
@@ -118,7 +176,24 @@ public class InterviewServiceImpl implements InterviewService {
                 );
 
 
-        // 6. Save generated questions into database
+        // =========================================================
+        // 7. VALIDATE AI RESPONSE
+        // =========================================================
+
+        if (response == null ||
+                response.getQuestions() == null ||
+                response.getQuestions().isEmpty()) {
+
+            throw new RuntimeException(
+                    "AI failed to generate interview questions."
+            );
+        }
+
+
+        // =========================================================
+        // 8. SAVE GENERATED QUESTIONS
+        // =========================================================
+
         for (com.airecruitment.interview.dto.InterviewQuestion questionDto
                 : response.getQuestions()) {
 
@@ -126,54 +201,96 @@ public class InterviewServiceImpl implements InterviewService {
                     InterviewQuestion.builder()
                             .job(job)
                             .resume(resume)
-                            .question(questionDto.getQuestion())
-                            .type(questionDto.getType())
-                            .difficulty(questionDto.getDifficulty())
+                            .question(
+                                    questionDto.getQuestion()
+                            )
+                            .type(
+                                    questionDto.getType()
+                            )
+                            .difficulty(
+                                    questionDto.getDifficulty()
+                            )
                             .build();
 
-            interviewQuestionRepository.save(question);
+            interviewQuestionRepository.save(
+                    question
+            );
         }
 
 
-        // 7. Return response
+        // =========================================================
+        // 9. RETURN RESPONSE
+        // =========================================================
+
         return response;
     }
+
+
+    // =========================================================
+    // FIND LATEST ASSESSMENT RESULT
+    // =========================================================
 
     private AssessmentResult findLatestAssessmentResult(
             Long candidateId,
             Long jobId,
             Long resumeId) {
 
-        User candidate = userRepository
-                .findById(candidateId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Candidate not found."
-                        )
-                );
+        // =========================================================
+        // FIND CANDIDATE
+        // =========================================================
 
-        Job job = jobRepository
-                .findById(jobId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Job not found."
-                        )
-                );
+        User candidate =
+                userRepository.findById(candidateId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Candidate not found."
+                                )
+                        );
 
-        Resume resume = resumeRepository
-                .findById(resumeId)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Resume not found."
-                        )
-                );
 
-        if (!resume.getCandidate().getId().equals(candidateId)) {
+        // =========================================================
+        // FIND JOB
+        // =========================================================
+
+        Job job =
+                jobRepository.findById(jobId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job not found."
+                                )
+                        );
+
+
+        // =========================================================
+        // FIND RESUME
+        // =========================================================
+
+        Resume resume =
+                resumeRepository.findById(resumeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Resume not found."
+                                )
+                        );
+
+
+        // =========================================================
+        // VALIDATE RESUME OWNERSHIP
+        // =========================================================
+
+        if (!resume.getCandidate()
+                .getId()
+                .equals(candidateId)) {
 
             throw new RuntimeException(
                     "Resume does not belong to the candidate."
             );
         }
+
+
+        // =========================================================
+        // FIND ASSESSMENT
+        // =========================================================
 
         Assessment assessment =
                 assessmentRepository
@@ -184,20 +301,156 @@ public class InterviewServiceImpl implements InterviewService {
                         )
                         .orElseThrow(() ->
                                 new RuntimeException(
-                                        "Assessment not found. " +
-                                                "Candidate must complete the assessment first."
+                                        "Assessment not found. "
+                                                + "Candidate must complete "
+                                                + "the assessment first."
                                 )
                         );
+
+
+        // =========================================================
+        // FIND ASSESSMENT RESULT
+        // =========================================================
 
         return assessmentResultRepository
                 .findByAssessment(assessment)
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Assessment result not found. " +
-                                        "Candidate must complete the assessment first."
+                                "Assessment result not found. "
+                                        + "Candidate must complete "
+                                        + "the assessment first."
                         )
                 );
     }
+
+
+    // =========================================================
+    // GET GENERATED INTERVIEW QUESTIONS
+    // =========================================================
+
+    @Override
+    public List<InterviewQuestionResponse> getQuestions(
+            Long candidateId,
+            Long jobId,
+            Long resumeId) {
+
+        // =========================================================
+        // 1. CHECK ASSESSMENT ELIGIBILITY
+        // =========================================================
+
+        AssessmentResult assessmentResult =
+                findLatestAssessmentResult(
+                        candidateId,
+                        jobId,
+                        resumeId
+                );
+
+
+        if (!Boolean.TRUE.equals(
+                assessmentResult.getPassed())) {
+
+            throw new InterviewNotEligibleException(
+                    "Candidate is not eligible for the interview. "
+                            + "Assessment score: "
+                            + assessmentResult.getOverallScore()
+                            + "%. Minimum passing score is 60%."
+            );
+        }
+
+
+        // =========================================================
+        // 2. FIND CANDIDATE
+        // =========================================================
+
+        User candidate =
+                userRepository.findById(candidateId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Candidate not found."
+                                )
+                        );
+
+
+        // =========================================================
+        // 3. FIND JOB
+        // =========================================================
+
+        Job job =
+                jobRepository.findById(jobId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job not found."
+                                )
+                        );
+
+
+        // =========================================================
+        // 4. FIND RESUME
+        // =========================================================
+
+        Resume resume =
+                resumeRepository.findById(resumeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Resume not found."
+                                )
+                        );
+
+
+        // =========================================================
+        // 5. VALIDATE RESUME OWNERSHIP
+        // =========================================================
+
+        if (!resume.getCandidate()
+                .getId()
+                .equals(candidate.getId())) {
+
+            throw new RuntimeException(
+                    "Resume does not belong to this candidate."
+            );
+        }
+
+
+        // =========================================================
+        // 6. FIND QUESTIONS
+        // =========================================================
+
+        List<InterviewQuestion> questions =
+                interviewQuestionRepository
+                        .findByJobIdAndResumeId(
+                                job.getId(),
+                                resume.getId()
+                        );
+
+
+        // =========================================================
+        // 7. CHECK QUESTIONS
+        // =========================================================
+
+        if (questions.isEmpty()) {
+
+            throw new RuntimeException(
+                    "No interview questions found."
+            );
+        }
+
+
+        // =========================================================
+        // 8. CONVERT ENTITY -> DTO
+        // =========================================================
+
+        return questions.stream()
+                .map(question ->
+                        new InterviewQuestionResponse(
+                                question.getId(),
+                                question.getQuestion(),
+                                question.getType(),
+                                question.getDifficulty()
+                        )
+                )
+                .toList();
+    }
+
 
     // =========================================================
     // BUILD INTERVIEW QUESTION PROMPT
@@ -325,14 +578,23 @@ public class InterviewServiceImpl implements InterviewService {
             Long questionId,
             String answer) {
 
-        // 1. Find candidate
-        User candidate = userRepository.findById(candidateId)
-                .orElseThrow(() ->
-                        new RuntimeException("Candidate not found.")
-                );
+        // =========================================================
+        // 1. FIND CANDIDATE
+        // =========================================================
+
+        User candidate =
+                userRepository.findById(candidateId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Candidate not found."
+                                )
+                        );
 
 
-        // 2. Find question
+        // =========================================================
+        // 2. FIND QUESTION
+        // =========================================================
+
         InterviewQuestion question =
                 interviewQuestionRepository.findById(questionId)
                         .orElseThrow(() ->
@@ -342,8 +604,12 @@ public class InterviewServiceImpl implements InterviewService {
                         );
 
 
-        // 3. Validate answer
-        if (answer == null || answer.trim().isEmpty()) {
+        // =========================================================
+        // 3. VALIDATE ANSWER
+        // =========================================================
+
+        if (answer == null ||
+                answer.trim().isEmpty()) {
 
             throw new RuntimeException(
                     "Answer cannot be empty."
@@ -351,60 +617,82 @@ public class InterviewServiceImpl implements InterviewService {
         }
 
 
-        // 4. Validate that the question belongs to the candidate's
-        //    interview through the resume
+        // =========================================================
+        // 4. VALIDATE CANDIDATE OWNERSHIP
+        // =========================================================
+
         if (!question.getResume()
                 .getCandidate()
                 .getId()
                 .equals(candidateId)) {
 
             throw new RuntimeException(
-                    "Interview question does not belong to this candidate."
+                    "Interview question does not belong "
+                            + "to this candidate."
             );
         }
 
 
-        // 5. Check whether candidate already answered
-        InterviewAnswer interviewAnswer =
+        // =========================================================
+        // 5. CHECK DUPLICATE ANSWER
+        // =========================================================
+
+        boolean alreadyAnswered =
                 interviewAnswerRepository
                         .findByCandidateAndQuestion(
                                 candidate,
                                 question
                         )
-                        .orElse(null);
+                        .isPresent();
 
 
-        // 6. Create answer if first submission
-        if (interviewAnswer == null) {
+        if (alreadyAnswered) {
 
-            interviewAnswer = InterviewAnswer.builder()
-                    .candidate(candidate)
-                    .question(question)
-                    .answer(answer)
-                    .evaluationStatus("PENDING")
-                    .build();
-
-        } else {
-
-            // Allow candidate to update/re-submit answer
-            interviewAnswer.setAnswer(answer);
-            interviewAnswer.setEvaluationStatus("PENDING");
+            throw new RuntimeException(
+                    "Answer has already been submitted "
+                            + "for this question."
+            );
         }
 
 
-        // 7. Build AI evaluation prompt
-        String prompt = buildEvaluationPrompt(
-                question,
-                answer
-        );
+        // =========================================================
+        // 6. CREATE ANSWER
+        // =========================================================
+
+        InterviewAnswer interviewAnswer =
+                InterviewAnswer.builder()
+                        .candidate(candidate)
+                        .question(question)
+                        .answer(answer)
+                        .evaluationStatus("PENDING")
+                        .build();
 
 
-        // 8. Evaluate using AI
+        // =========================================================
+        // 7. BUILD AI EVALUATION PROMPT
+        // =========================================================
+
+        String prompt =
+                buildEvaluationPrompt(
+                        question,
+                        answer
+                );
+
+
+        // =========================================================
+        // 8. EVALUATE USING AI
+        // =========================================================
+
         InterviewEvaluationResponse evaluation =
-                aiClient.evaluateInterviewAnswer(prompt);
+                aiClient.evaluateInterviewAnswer(
+                        prompt
+                );
 
 
-        // 9. Save evaluation
+        // =========================================================
+        // 9. SAVE EVALUATION
+        // =========================================================
+
         interviewAnswer.setScore(
                 evaluation.getScore()
         );
@@ -418,13 +706,19 @@ public class InterviewServiceImpl implements InterviewService {
         );
 
 
-        // 10. Save answer + evaluation
+        // =========================================================
+        // 10. SAVE ANSWER
+        // =========================================================
+
         interviewAnswerRepository.save(
                 interviewAnswer
         );
 
 
-        // 11. Return evaluation result
+        // =========================================================
+        // 11. RETURN EVALUATION
+        // =========================================================
+
         evaluation.setEvaluationStatus(
                 "EVALUATED"
         );
@@ -519,26 +813,45 @@ public class InterviewServiceImpl implements InterviewService {
             Long candidateId,
             Long jobId) {
 
-        // 1. Find candidate
-        User candidate = userRepository.findById(candidateId)
-                .orElseThrow(() ->
-                        new RuntimeException("Candidate not found.")
-                );
+        // =========================================================
+        // 1. FIND CANDIDATE
+        // =========================================================
+
+        User candidate =
+                userRepository.findById(candidateId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Candidate not found."
+                                )
+                        );
 
 
-        // 2. Find job
-        Job job = jobRepository.findById(jobId)
-                .orElseThrow(() ->
-                        new RuntimeException("Job not found.")
-                );
+        // =========================================================
+        // 2. FIND JOB
+        // =========================================================
+
+        Job job =
+                jobRepository.findById(jobId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job not found."
+                                )
+                        );
 
 
-        // 3. Find all answers submitted by candidate
+        // =========================================================
+        // 3. FIND ALL ANSWERS OF CANDIDATE
+        // =========================================================
+
         List<InterviewAnswer> answers =
-                interviewAnswerRepository.findByCandidate(candidate);
+                interviewAnswerRepository
+                        .findByCandidate(candidate);
 
 
-        // 4. Filter answers belonging to this job
+        // =========================================================
+        // 4. FILTER ANSWERS FOR THIS JOB
+        // =========================================================
+
         List<InterviewAnswer> jobAnswers =
                 answers.stream()
                         .filter(answer ->
@@ -550,7 +863,10 @@ public class InterviewServiceImpl implements InterviewService {
                         .toList();
 
 
-        // 5. Check answers
+        // =========================================================
+        // 5. CHECK WHETHER ANSWERS EXIST
+        // =========================================================
+
         if (jobAnswers.isEmpty()) {
 
             throw new RuntimeException(
@@ -559,7 +875,99 @@ public class InterviewServiceImpl implements InterviewService {
         }
 
 
-        // 6. Calculate overall score
+        // =========================================================
+        // 6. FIND RESUME FROM ANSWERS
+        // =========================================================
+
+        Resume resume =
+                jobAnswers.get(0)
+                        .getQuestion()
+                        .getResume();
+
+
+        Long resumeId =
+                resume.getId();
+
+
+        // =========================================================
+        // 7. FIND GENERATED QUESTIONS
+        // =========================================================
+
+        List<InterviewQuestion> interviewQuestions =
+                interviewQuestionRepository
+                        .findByJobIdAndResumeId(
+                                job.getId(),
+                                resumeId
+                        );
+
+
+        int totalQuestions =
+                interviewQuestions.size();
+
+
+        // =========================================================
+        // 8. VALIDATE TOTAL QUESTIONS
+        // =========================================================
+
+        if (totalQuestions == 0) {
+
+            throw new RuntimeException(
+                    "No interview questions found "
+                            + "for this job and resume."
+            );
+        }
+
+
+        // =========================================================
+        // 9. CHECK INTERVIEW COMPLETION
+        // =========================================================
+
+        int answeredQuestions =
+                jobAnswers.size();
+
+
+        if (answeredQuestions < totalQuestions) {
+
+            throw new RuntimeException(
+                    "Interview is not completed. "
+                            + answeredQuestions
+                            + " out of "
+                            + totalQuestions
+                            + " questions have been answered."
+            );
+        }
+
+
+        // =========================================================
+        // 10. CHECK EVALUATION COMPLETION
+        // =========================================================
+
+        long evaluatedAnswers =
+                jobAnswers.stream()
+                        .filter(answer ->
+                                "EVALUATED".equalsIgnoreCase(
+                                        answer.getEvaluationStatus()
+                                )
+                        )
+                        .count();
+
+
+        if (evaluatedAnswers < totalQuestions) {
+
+            throw new RuntimeException(
+                    "Interview evaluation is not completed. "
+                            + evaluatedAnswers
+                            + " out of "
+                            + totalQuestions
+                            + " answers have been evaluated."
+            );
+        }
+
+
+        // =========================================================
+        // 11. CALCULATE OVERALL SCORE
+        // =========================================================
+
         double overallScore =
                 jobAnswers.stream()
                         .filter(answer ->
@@ -572,7 +980,10 @@ public class InterviewServiceImpl implements InterviewService {
                         .orElse(0.0);
 
 
-        // 7. Calculate technical score
+        // =========================================================
+        // 12. CALCULATE TECHNICAL SCORE
+        // =========================================================
+
         double technicalScore =
                 calculateCategoryScore(
                         jobAnswers,
@@ -580,7 +991,10 @@ public class InterviewServiceImpl implements InterviewService {
                 );
 
 
-        // 8. Calculate HR score
+        // =========================================================
+        // 13. CALCULATE HR SCORE
+        // =========================================================
+
         double hrScore =
                 calculateCategoryScore(
                         jobAnswers,
@@ -588,7 +1002,10 @@ public class InterviewServiceImpl implements InterviewService {
                 );
 
 
-        // 9. Calculate skill-gap score
+        // =========================================================
+        // 14. CALCULATE SKILL GAP SCORE
+        // =========================================================
+
         double skillGapScore =
                 calculateCategoryScore(
                         jobAnswers,
@@ -596,7 +1013,10 @@ public class InterviewServiceImpl implements InterviewService {
                 );
 
 
-        // 10. Create response
+        // =========================================================
+        // 15. CREATE RESPONSE
+        // =========================================================
+
         InterviewResultResponse response =
                 new InterviewResultResponse();
 
@@ -605,62 +1025,113 @@ public class InterviewServiceImpl implements InterviewService {
                 candidateId
         );
 
+
         response.setJobId(
                 jobId
         );
 
 
-        // Total number of questions
         response.setTotalQuestions(
-                10
+                totalQuestions
         );
 
 
-        // Number of submitted answers
         response.setAnsweredQuestions(
-                jobAnswers.size()
+                answeredQuestions
         );
 
 
-        // Average score out of 10
         response.setAverageScore(
                 round(overallScore)
         );
 
 
-        // Overall percentage
         response.setOverallScore(
                 round(overallScore * 10)
         );
 
 
-        // Category percentages
         response.setTechnicalScore(
                 round(technicalScore * 10)
         );
 
+
         response.setHrScore(
                 round(hrScore * 10)
         );
+
 
         response.setSkillGapScore(
                 round(skillGapScore * 10)
         );
 
 
-        // Final recommendation
+        // =========================================================
+        // 16. FINAL RECOMMENDATION
+        // =========================================================
+
         response.setRecommendation(
-                getRecommendation(overallScore)
+                getRecommendation(
+                        overallScore
+                )
         );
+
+
+        // =========================================================
+        // 17. FINAL SUMMARY
+        // =========================================================
 
         response.setSummary(
-                generateSummary(overallScore)
+                generateSummary(
+                        overallScore
+                )
         );
 
 
-// =========================================================
-// SAVE FINAL RESULT
-// =========================================================
+        // =========================================================
+        // 18. UPDATE JOB MATCH STATUS
+        // =========================================================
+
+        JobMatch jobMatch =
+                jobMatchRepository
+                        .findByJobAndResume(
+                                job,
+                                resume
+                        )
+                        .orElse(null);
+
+
+        if (jobMatch != null) {
+
+            String recommendation =
+                    response.getRecommendation();
+
+            if ("SELECT".equalsIgnoreCase(recommendation)) {
+
+                jobMatch.setStatus(
+                        MatchStatus.SHORTLISTED
+                );
+
+            } else if ("REJECT".equalsIgnoreCase(recommendation)) {
+
+                jobMatch.setStatus(
+                        MatchStatus.REJECTED
+                );
+
+            } else if ("CONSIDER".equalsIgnoreCase(recommendation)) {
+
+                jobMatch.setStatus(
+                        MatchStatus.PENDING
+                );
+            }
+
+            jobMatchRepository.save(jobMatch);
+        }
+
+
+        // =========================================================
+        // 19. SAVE FINAL INTERVIEW RESULT
+        // =========================================================
 
         InterviewResult interviewResult =
                 interviewResultRepository
@@ -675,46 +1146,60 @@ public class InterviewServiceImpl implements InterviewService {
                                         .build()
                         );
 
+
         interviewResult.setTotalQuestions(
                 response.getTotalQuestions()
         );
+
 
         interviewResult.setAnsweredQuestions(
                 response.getAnsweredQuestions()
         );
 
+
         interviewResult.setAverageScore(
                 response.getAverageScore()
         );
+
 
         interviewResult.setOverallScore(
                 response.getOverallScore()
         );
 
+
         interviewResult.setTechnicalScore(
                 response.getTechnicalScore()
         );
+
 
         interviewResult.setHrScore(
                 response.getHrScore()
         );
 
+
         interviewResult.setSkillGapScore(
                 response.getSkillGapScore()
         );
+
 
         interviewResult.setRecommendation(
                 response.getRecommendation()
         );
 
+
         interviewResult.setSummary(
                 response.getSummary()
         );
+
 
         interviewResultRepository.save(
                 interviewResult
         );
 
+
+        // =========================================================
+        // 20. RETURN FINAL RESULT
+        // =========================================================
 
         return response;
     }
@@ -753,16 +1238,22 @@ public class InterviewServiceImpl implements InterviewService {
             double score) {
 
         if (score >= 8.0) {
+
             return "SELECT";
         }
 
+
         if (score >= 6.0) {
+
             return "CONSIDER";
         }
 
+
         if (score >= 4.0) {
+
             return "WEAK_MATCH";
         }
+
 
         return "REJECT";
     }

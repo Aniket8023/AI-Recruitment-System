@@ -1,12 +1,11 @@
 package com.airecruitment.interview.controller;
 
-import com.airecruitment.interview.dto.InterviewAnswerRequest;
-import com.airecruitment.interview.dto.InterviewEvaluationResponse;
-import com.airecruitment.interview.dto.InterviewQuestionsResponse;
-import com.airecruitment.interview.dto.InterviewResultResponse;
+import com.airecruitment.interview.dto.*;
 import com.airecruitment.interview.service.InterviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/interview")
@@ -55,6 +54,21 @@ public class InterviewController {
         return interviewService.getInterviewResult(
                 candidateId,
                 jobId
+        );
+    }
+
+    @GetMapping(
+            "/candidates/{candidateId}/jobs/{jobId}/resumes/{resumeId}/questions"
+    )
+    public List<InterviewQuestionResponse> getQuestions(
+            @PathVariable Long candidateId,
+            @PathVariable Long jobId,
+            @PathVariable Long resumeId) {
+
+        return interviewService.getQuestions(
+                candidateId,
+                jobId,
+                resumeId
         );
     }
 }

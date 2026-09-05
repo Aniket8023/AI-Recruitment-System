@@ -1,5 +1,6 @@
 package com.airecruitment.exception.handler;
 
+import com.airecruitment.common.dto.ApiErrorResponse;
 import com.airecruitment.common.exception.InterviewNotEligibleException;
 import com.airecruitment.common.response.ErrorResponse;
 import com.airecruitment.exception.custom.EmailAlreadyExistsException;
@@ -100,6 +101,25 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
+                .body(response);
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiErrorResponse> handleRuntimeException(
+            RuntimeException ex,
+            HttpServletRequest request) {
+
+        ApiErrorResponse response =
+                new ApiErrorResponse(
+                        LocalDateTime.now(),
+                        HttpStatus.BAD_REQUEST.value(),
+                        "Bad Request",
+                        ex.getMessage(),
+                        request.getRequestURI()
+                );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(response);
     }
 }

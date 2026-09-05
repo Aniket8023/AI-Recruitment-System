@@ -1,10 +1,7 @@
 package com.airecruitment.match.service;
 
 import com.airecruitment.common.enums.MatchStatus;
-import com.airecruitment.match.dto.CandidateDetailResponse;
-import com.airecruitment.match.dto.CandidateRankingResponse;
-import com.airecruitment.match.dto.JobMatchResponse;
-import com.airecruitment.match.dto.RecruiterDashboardResponse;
+import com.airecruitment.match.dto.*;
 
 import java.util.List;
 
@@ -39,5 +36,11 @@ public interface JobMatchingService {
 
     RecruiterDashboardResponse getDashboardSummary(
             Long jobId
+    );
+
+    CandidateEvaluationResponse getCandidateEvaluation(
+            Long jobId,
+            Long candidateId,
+            Long resumeId
     );
 }

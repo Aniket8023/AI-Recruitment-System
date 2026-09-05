@@ -16,6 +16,8 @@ public interface JobMatchRepository extends JpaRepository<JobMatch, Long> {
             Resume resume
     );
 
+
+
     List<JobMatch> findByJobOrderByMatchScoreDesc(
             Job job
     );

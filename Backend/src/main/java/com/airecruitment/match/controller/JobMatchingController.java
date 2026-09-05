@@ -1,10 +1,7 @@
 package com.airecruitment.match.controller;
 
 import com.airecruitment.common.enums.MatchStatus;
-import com.airecruitment.match.dto.CandidateDetailResponse;
-import com.airecruitment.match.dto.CandidateRankingResponse;
-import com.airecruitment.match.dto.JobMatchResponse;
-import com.airecruitment.match.dto.RecruiterDashboardResponse;
+import com.airecruitment.match.dto.*;
 import com.airecruitment.match.service.JobMatchingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -101,5 +98,20 @@ public class JobMatchingController {
 
         return jobMatchingService
                 .getDashboardSummary(jobId);
+    }
+
+    @GetMapping(
+            "/jobs/{jobId}/candidates/{candidateId}/resumes/{resumeId}/evaluation"
+    )
+    public CandidateEvaluationResponse getCandidateEvaluation(
+            @PathVariable Long jobId,
+            @PathVariable Long candidateId,
+            @PathVariable Long resumeId) {
+
+        return jobMatchingService.getCandidateEvaluation(
+                jobId,
+                candidateId,
+                resumeId
+        );
     }
 }
