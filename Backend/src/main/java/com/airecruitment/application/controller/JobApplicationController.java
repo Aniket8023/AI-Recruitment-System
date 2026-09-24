@@ -1,7 +1,6 @@
 package com.airecruitment.application.controller;
 
-import com.airecruitment.application.dto.ApplyJobRequest;
-import com.airecruitment.application.dto.JobApplicationResponse;
+import com.airecruitment.application.dto.*;
 import com.airecruitment.application.service.JobApplicationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -57,5 +56,32 @@ public class JobApplicationController {
 
         return jobApplicationService
                 .getApplication(applicationId);
+    }
+
+    // =========================================================
+// GET RECRUITER APPLICATIONS
+// =========================================================
+
+    @GetMapping("/recruiter")
+    public List<RecruiterApplicationResponse> getRecruiterApplications() {
+
+        return jobApplicationService
+                .getRecruiterApplications();
+    }
+
+    @GetMapping("/recruiter/candidates")
+    public List<RecruiterCandidateResponse> getRecruiterCandidates() {
+
+        return jobApplicationService.getRecruiterCandidates();
+    }
+
+    @GetMapping("/recruiter/candidates/{applicationId}")
+    public RecruiterCandidateDetailsResponse
+    getRecruiterCandidateDetails(
+            @PathVariable Long applicationId
+    ) {
+
+        return jobApplicationService
+                .getRecruiterCandidateDetails(applicationId);
     }
 }

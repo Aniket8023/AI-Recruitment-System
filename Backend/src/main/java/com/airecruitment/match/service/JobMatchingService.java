@@ -43,4 +43,8 @@ public interface JobMatchingService {
             Long candidateId,
             Long resumeId
     );
+
+    List<RecommendedJobResponse> getRecommendedJobs(
+            Long candidateId
+    );
 }

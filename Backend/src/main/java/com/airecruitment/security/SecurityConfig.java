@@ -4,7 +4,9 @@ import com.airecruitment.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -21,7 +23,24 @@ public class SecurityConfig {
     ) throws Exception {
 
         http
-                .csrf(csrf -> csrf.disable())
+
+                // =============================================
+                // CSRF
+                // =============================================
+
+                .csrf(AbstractHttpConfigurer::disable)
+
+
+                // =============================================
+                // CORS
+                // =============================================
+
+                .cors(cors -> {})
+
+
+                // =============================================
+                // SESSION
+                // =============================================
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
@@ -29,14 +48,35 @@ public class SecurityConfig {
                         )
                 )
 
+
+                // =============================================
+                // AUTHORIZATION
+                // =============================================
+
                 .authorizeHttpRequests(auth -> auth
 
+                        // Authentication APIs
                         .requestMatchers(
                                 "/api/v1/auth/**"
                         ).permitAll()
 
+                        .requestMatchers("/api/v1/companies/**")
+                        .hasAnyRole("RECRUITER", "COMPANY_ADMIN")
+
+                        // CORS preflight
+                        .requestMatchers(
+                                HttpMethod.OPTIONS,
+                                "/**"
+                        ).permitAll()
+
+                        // All remaining APIs
                         .anyRequest().authenticated()
                 )
+
+
+                // =============================================
+                // JWT FILTER
+                // =============================================
 
                 .addFilterBefore(
                         jwtAuthenticationFilter,

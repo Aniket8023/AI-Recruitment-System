@@ -1,7 +1,6 @@
 package com.airecruitment.application.service;
 
-import com.airecruitment.application.dto.ApplyJobRequest;
-import com.airecruitment.application.dto.JobApplicationResponse;
+import com.airecruitment.application.dto.*;
 
 import java.util.List;
 
@@ -19,4 +18,14 @@ public interface JobApplicationService {
     JobApplicationResponse getApplication(
             Long applicationId
     );
+
+    List<RecruiterApplicationResponse> getRecruiterApplications();
+
+    List<RecruiterCandidateResponse> getRecruiterCandidates();
+
+    RecruiterCandidateDetailsResponse getRecruiterCandidateDetails(
+            Long applicationId
+    );
+
+
 }

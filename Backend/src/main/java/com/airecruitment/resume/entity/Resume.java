@@ -25,6 +25,10 @@ public class Resume extends BaseEntity {
     private String fileType;
 
     @Lob
+    @Column(columnDefinition = "LONGBLOB")
+    private byte[] fileData;
+
+    @Lob
     @Column(columnDefinition = "LONGTEXT")
     private String extractedText;
 }

@@ -16,4 +16,6 @@ public interface JobRepository
             User recruiter,
             JobStatus status
     );
+
+    List<Job> findByStatus(JobStatus status);
 }

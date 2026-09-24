@@ -28,4 +28,12 @@ public class InterviewResultResponse {
     private String recommendation;
 
     private String summary;
+
+    private Boolean integrityViolation;
+
+    private Integer violationCount;
+
+    private String terminationReason;
+
+    private String interviewStatus;
 }

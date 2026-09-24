@@ -1,16 +1,14 @@
 package com.airecruitment.interview.serviceimpl;
 
 import com.airecruitment.ai.client.AiClient;
+import com.airecruitment.ai.service.AudioTranscriptionService;
 import com.airecruitment.assessment.entity.Assessment;
 import com.airecruitment.assessment.entity.AssessmentResult;
 import com.airecruitment.assessment.repository.AssessmentRepository;
 import com.airecruitment.assessment.repository.AssessmentResultRepository;
 import com.airecruitment.common.enums.MatchStatus;
 import com.airecruitment.common.exception.InterviewNotEligibleException;
-import com.airecruitment.interview.dto.InterviewEvaluationResponse;
-import com.airecruitment.interview.dto.InterviewQuestionResponse;
-import com.airecruitment.interview.dto.InterviewQuestionsResponse;
-import com.airecruitment.interview.dto.InterviewResultResponse;
+import com.airecruitment.interview.dto.*;
 import com.airecruitment.interview.entity.InterviewAnswer;
 import com.airecruitment.interview.entity.InterviewQuestion;
 import com.airecruitment.interview.entity.InterviewResult;
@@ -28,9 +26,18 @@ import com.airecruitment.user.entity.User;
 import com.airecruitment.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -56,6 +63,7 @@ public class InterviewServiceImpl implements InterviewService {
 
     private final JobMatchRepository jobMatchRepository;
 
+    private final AudioTranscriptionService audioTranscriptionService;
 
     // =========================================================
     // GENERATE INTERVIEW QUESTIONS
@@ -809,6 +817,7 @@ public class InterviewServiceImpl implements InterviewService {
     // =========================================================
 
     @Override
+    @Transactional
     public InterviewResultResponse getInterviewResult(
             Long candidateId,
             Long jobId) {
@@ -840,7 +849,92 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 3. FIND ALL ANSWERS OF CANDIDATE
+        // 3. CHECK IF FINAL RESULT ALREADY EXISTS
+        // =========================================================
+
+        Optional<InterviewResult> existingResult =
+                interviewResultRepository
+                        .findByCandidateAndJob(
+                                candidate,
+                                job
+                        );
+
+
+        if (existingResult.isPresent()) {
+
+            InterviewResult savedResult =
+                    existingResult.get();
+
+            InterviewResultResponse response =
+                    new InterviewResultResponse();
+
+            response.setCandidateId(
+                    savedResult.getCandidate().getId()
+            );
+
+            response.setJobId(
+                    savedResult.getJob().getId()
+            );
+
+            response.setTotalQuestions(
+                    savedResult.getTotalQuestions()
+            );
+
+            response.setAnsweredQuestions(
+                    savedResult.getAnsweredQuestions()
+            );
+
+            response.setAverageScore(
+                    savedResult.getAverageScore()
+            );
+
+            response.setOverallScore(
+                    savedResult.getOverallScore()
+            );
+
+            response.setTechnicalScore(
+                    savedResult.getTechnicalScore()
+            );
+
+            response.setHrScore(
+                    savedResult.getHrScore()
+            );
+
+            response.setSkillGapScore(
+                    savedResult.getSkillGapScore()
+            );
+
+            response.setRecommendation(
+                    savedResult.getRecommendation()
+            );
+
+            response.setSummary(
+                    savedResult.getSummary()
+            );
+
+            // Security / termination fields
+            response.setIntegrityViolation(
+                    savedResult.getIntegrityViolation()
+            );
+
+            response.setViolationCount(
+                    savedResult.getViolationCount()
+            );
+
+            response.setTerminationReason(
+                    savedResult.getTerminationReason()
+            );
+
+            response.setInterviewStatus(
+                    savedResult.getInterviewStatus()
+            );
+
+            return response;
+        }
+
+
+        // =========================================================
+        // 4. FIND ALL ANSWERS OF CANDIDATE
         // =========================================================
 
         List<InterviewAnswer> answers =
@@ -849,7 +943,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 4. FILTER ANSWERS FOR THIS JOB
+        // 5. FILTER ANSWERS FOR THIS JOB
         // =========================================================
 
         List<InterviewAnswer> jobAnswers =
@@ -864,7 +958,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 5. CHECK WHETHER ANSWERS EXIST
+        // 6. CHECK WHETHER ANSWERS EXIST
         // =========================================================
 
         if (jobAnswers.isEmpty()) {
@@ -876,7 +970,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 6. FIND RESUME FROM ANSWERS
+        // 7. FIND RESUME FROM ANSWERS
         // =========================================================
 
         Resume resume =
@@ -890,7 +984,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 7. FIND GENERATED QUESTIONS
+        // 8. FIND GENERATED QUESTIONS
         // =========================================================
 
         List<InterviewQuestion> interviewQuestions =
@@ -906,7 +1000,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 8. VALIDATE TOTAL QUESTIONS
+        // 9. VALIDATE TOTAL QUESTIONS
         // =========================================================
 
         if (totalQuestions == 0) {
@@ -919,7 +1013,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 9. CHECK INTERVIEW COMPLETION
+        // 10. CHECK INTERVIEW COMPLETION
         // =========================================================
 
         int answeredQuestions =
@@ -939,7 +1033,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 10. CHECK EVALUATION COMPLETION
+        // 11. CHECK EVALUATION COMPLETION
         // =========================================================
 
         long evaluatedAnswers =
@@ -965,7 +1059,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 11. CALCULATE OVERALL SCORE
+        // 12. CALCULATE OVERALL SCORE
         // =========================================================
 
         double overallScore =
@@ -981,7 +1075,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 12. CALCULATE TECHNICAL SCORE
+        // 13. CALCULATE TECHNICAL SCORE
         // =========================================================
 
         double technicalScore =
@@ -992,7 +1086,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 13. CALCULATE HR SCORE
+        // 14. CALCULATE HR SCORE
         // =========================================================
 
         double hrScore =
@@ -1003,7 +1097,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 14. CALCULATE SKILL GAP SCORE
+        // 15. CALCULATE SKILL GAP SCORE
         // =========================================================
 
         double skillGapScore =
@@ -1014,7 +1108,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 15. CREATE RESPONSE
+        // 16. CREATE RESPONSE
         // =========================================================
 
         InterviewResultResponse response =
@@ -1067,7 +1161,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 16. FINAL RECOMMENDATION
+        // 17. FINAL RECOMMENDATION
         // =========================================================
 
         response.setRecommendation(
@@ -1078,7 +1172,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 17. FINAL SUMMARY
+        // 18. FINAL SUMMARY
         // =========================================================
 
         response.setSummary(
@@ -1089,7 +1183,20 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 18. UPDATE JOB MATCH STATUS
+        // 19. NORMAL INTERVIEW STATUS
+        // =========================================================
+
+        response.setIntegrityViolation(false);
+
+        response.setViolationCount(0);
+
+        response.setTerminationReason(null);
+
+        response.setInterviewStatus("COMPLETED");
+
+
+        // =========================================================
+        // 20. UPDATE JOB MATCH STATUS
         // =========================================================
 
         JobMatch jobMatch =
@@ -1106,19 +1213,22 @@ public class InterviewServiceImpl implements InterviewService {
             String recommendation =
                     response.getRecommendation();
 
-            if ("SELECT".equalsIgnoreCase(recommendation)) {
+            if ("SELECT".equalsIgnoreCase(
+                    recommendation)) {
 
                 jobMatch.setStatus(
                         MatchStatus.SHORTLISTED
                 );
 
-            } else if ("REJECT".equalsIgnoreCase(recommendation)) {
+            } else if ("REJECT".equalsIgnoreCase(
+                    recommendation)) {
 
                 jobMatch.setStatus(
                         MatchStatus.REJECTED
                 );
 
-            } else if ("CONSIDER".equalsIgnoreCase(recommendation)) {
+            } else if ("CONSIDER".equalsIgnoreCase(
+                    recommendation)) {
 
                 jobMatch.setStatus(
                         MatchStatus.PENDING
@@ -1130,66 +1240,45 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 19. SAVE FINAL INTERVIEW RESULT
+        // 21. SAVE FINAL INTERVIEW RESULT
         // =========================================================
 
         InterviewResult interviewResult =
-                interviewResultRepository
-                        .findByCandidateAndJob(
-                                candidate,
-                                job
+                InterviewResult.builder()
+                        .candidate(candidate)
+                        .job(job)
+                        .totalQuestions(
+                                response.getTotalQuestions()
                         )
-                        .orElse(
-                                InterviewResult.builder()
-                                        .candidate(candidate)
-                                        .job(job)
-                                        .build()
-                        );
-
-
-        interviewResult.setTotalQuestions(
-                response.getTotalQuestions()
-        );
-
-
-        interviewResult.setAnsweredQuestions(
-                response.getAnsweredQuestions()
-        );
-
-
-        interviewResult.setAverageScore(
-                response.getAverageScore()
-        );
-
-
-        interviewResult.setOverallScore(
-                response.getOverallScore()
-        );
-
-
-        interviewResult.setTechnicalScore(
-                response.getTechnicalScore()
-        );
-
-
-        interviewResult.setHrScore(
-                response.getHrScore()
-        );
-
-
-        interviewResult.setSkillGapScore(
-                response.getSkillGapScore()
-        );
-
-
-        interviewResult.setRecommendation(
-                response.getRecommendation()
-        );
-
-
-        interviewResult.setSummary(
-                response.getSummary()
-        );
+                        .answeredQuestions(
+                                response.getAnsweredQuestions()
+                        )
+                        .averageScore(
+                                response.getAverageScore()
+                        )
+                        .overallScore(
+                                response.getOverallScore()
+                        )
+                        .technicalScore(
+                                response.getTechnicalScore()
+                        )
+                        .hrScore(
+                                response.getHrScore()
+                        )
+                        .skillGapScore(
+                                response.getSkillGapScore()
+                        )
+                        .recommendation(
+                                response.getRecommendation()
+                        )
+                        .summary(
+                                response.getSummary()
+                        )
+                        .integrityViolation(false)
+                        .violationCount(0)
+                        .terminationReason(null)
+                        .interviewStatus("COMPLETED")
+                        .build();
 
 
         interviewResultRepository.save(
@@ -1198,7 +1287,7 @@ public class InterviewServiceImpl implements InterviewService {
 
 
         // =========================================================
-        // 20. RETURN FINAL RESULT
+        // 22. RETURN FINAL RESULT
         // =========================================================
 
         return response;
@@ -1287,6 +1376,391 @@ public class InterviewServiceImpl implements InterviewService {
         return "Candidate's interview performance is below the expected level for this position.";
     }
 
+    @Override
+    public InterviewEvaluationResponse submitVoiceAnswer(
+            Long candidateId,
+            Long questionId,
+            MultipartFile audio) {
+
+        // =========================================================
+        // 1. VALIDATE AUDIO
+        // =========================================================
+
+        if (
+                audio == null ||
+                        audio.isEmpty()
+        ) {
+
+            throw new RuntimeException(
+                    "Voice recording is empty."
+            );
+        }
+
+
+        // =========================================================
+        // 2. FIND CANDIDATE
+        // =========================================================
+
+        User candidate =
+                userRepository.findById(candidateId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Candidate not found."
+                                )
+                        );
+
+
+        // =========================================================
+        // 3. FIND QUESTION
+        // =========================================================
+
+        InterviewQuestion question =
+                interviewQuestionRepository
+                        .findById(questionId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Interview question not found."
+                                )
+                        );
+
+
+        // =========================================================
+        // 4. VALIDATE OWNERSHIP
+        // =========================================================
+
+        if (
+                !question
+                        .getResume()
+                        .getCandidate()
+                        .getId()
+                        .equals(candidateId)
+        ) {
+
+            throw new RuntimeException(
+                    "Interview question does not belong to this candidate."
+            );
+        }
+
+
+        // =========================================================
+        // 5. SERVER-SIDE TRANSCRIPTION
+        // =========================================================
+
+        String serverTranscript =
+                audioTranscriptionService.transcribe(
+                        audio
+                );
+
+
+        // =========================================================
+        // 6. VALIDATE TRANSCRIPT
+        // =========================================================
+
+        if (
+                serverTranscript == null ||
+                        serverTranscript.trim().isEmpty()
+        ) {
+
+            throw new RuntimeException(
+                    "Could not understand the voice answer. Please try again."
+            );
+        }
+
+
+        // =========================================================
+        // 7. EVALUATE USING EXISTING AI FLOW
+        // =========================================================
+
+        return submitAnswer(
+                candidateId,
+                questionId,
+                serverTranscript.trim()
+        );
+    }
+
+
+    @Override
+    public InterviewResultResponse terminateInterview(
+            Long candidateId,
+            Long jobId,
+            Integer violationCount,
+            String reason) {
+
+        // =========================================================
+        // 1. FIND CANDIDATE
+        // =========================================================
+
+
+        if (violationCount == null || violationCount < 1) {
+            violationCount = 3;
+        }
+
+        if (reason == null || reason.isBlank()) {
+            reason =
+                    "Interview terminated after reaching the maximum number of security violations.";
+        }
+
+        User candidate =
+                userRepository.findById(candidateId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Candidate not found."
+                                )
+                        );
+
+
+        // =========================================================
+        // 2. FIND JOB
+        // =========================================================
+
+        Job job =
+                jobRepository.findById(jobId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job not found."
+                                )
+                        );
+
+
+        // =========================================================
+        // 3. FIND INTERVIEW QUESTIONS
+        // =========================================================
+
+        List<InterviewQuestion> interviewQuestions =
+                interviewQuestionRepository
+                        .findByResume_Candidate_Id(candidateId)
+                        .stream()
+                        .filter(question ->
+                                question.getJob()
+                                        .getId()
+                                        .equals(jobId)
+                        )
+                        .toList();
+
+
+        if (interviewQuestions.isEmpty()) {
+
+            throw new RuntimeException(
+                    "No interview questions found for this candidate and job."
+            );
+        }
+
+
+        // =========================================================
+        // 4. FIND RESUME USED FOR INTERVIEW
+        // =========================================================
+
+        Resume resume =
+                interviewQuestions
+                        .get(0)
+                        .getResume();
+
+
+        // =========================================================
+        // 5. COUNT ANSWERED QUESTIONS
+        // =========================================================
+
+        List<InterviewAnswer> candidateAnswers =
+                interviewAnswerRepository
+                        .findByCandidate(candidate);
+
+        int answeredQuestions =
+                (int) candidateAnswers.stream()
+                        .filter(answer ->
+                                answer.getQuestion()
+                                        .getJob()
+                                        .getId()
+                                        .equals(jobId)
+                        )
+                        .filter(answer ->
+                                answer.getQuestion()
+                                        .getResume()
+                                        .getId()
+                                        .equals(resume.getId())
+                        )
+                        .count();
+
+
+        // =========================================================
+        // 6. FIND / CREATE INTERVIEW RESULT
+        // =========================================================
+
+        InterviewResult interviewResult =
+                interviewResultRepository
+                        .findByCandidateAndJob(
+                                candidate,
+                                job
+                        )
+                        .orElse(
+                                InterviewResult.builder()
+                                        .candidate(candidate)
+                                        .job(job)
+                                        .build()
+                        );
+
+
+        // =========================================================
+        // 7. SAVE TERMINATED INTERVIEW RESULT
+        // =========================================================
+
+        interviewResult.setTotalQuestions(
+                interviewQuestions.size()
+        );
+
+        interviewResult.setAnsweredQuestions(
+                answeredQuestions
+        );
+
+        interviewResult.setAverageScore(
+                0.0
+        );
+
+        interviewResult.setOverallScore(
+                0.0
+        );
+
+        interviewResult.setTechnicalScore(
+                0.0
+        );
+
+        interviewResult.setHrScore(
+                0.0
+        );
+
+        interviewResult.setSkillGapScore(
+                0.0
+        );
+
+        interviewResult.setRecommendation(
+                "REJECT"
+        );
+
+        interviewResult.setIntegrityViolation(true);
+
+        interviewResult.setViolationCount(
+                violationCount
+        );
+
+        interviewResult.setTerminationReason(
+                reason
+        );
+
+        interviewResult.setInterviewStatus(
+                "TERMINATED"
+        );
+
+        interviewResult.setSummary(
+                "Interview terminated because the maximum "
+                        + "allowed proctoring violations were reached. "
+                        + "Violation count: "
+                        + violationCount
+                        + ". Reason: "
+                        + reason
+        );
+
+
+        interviewResultRepository.save(
+                interviewResult
+        );
+
+
+        // =========================================================
+        // 8. REJECT JOB MATCH
+        // =========================================================
+
+        JobMatch jobMatch =
+                jobMatchRepository
+                        .findByJobAndResume(
+                                job,
+                                resume
+                        )
+                        .orElse(null);
+
+
+        if (jobMatch != null) {
+
+            jobMatch.setStatus(
+                    MatchStatus.REJECTED
+            );
+
+            jobMatchRepository.save(
+                    jobMatch
+            );
+        }
+
+
+        // =========================================================
+        // 9. BUILD RESPONSE
+        // =========================================================
+
+        InterviewResultResponse response =
+                new InterviewResultResponse();
+
+        response.setCandidateId(
+                candidateId
+        );
+
+        response.setJobId(
+                jobId
+        );
+
+        response.setTotalQuestions(
+                interviewQuestions.size()
+        );
+
+        response.setAnsweredQuestions(
+                answeredQuestions
+        );
+
+        response.setAverageScore(
+                0.0
+        );
+
+        response.setOverallScore(
+                0.0
+        );
+
+        response.setTechnicalScore(
+                0.0
+        );
+
+        response.setHrScore(
+                0.0
+        );
+
+        response.setSkillGapScore(
+                0.0
+        );
+
+        response.setRecommendation(
+                "REJECT"
+        );
+
+        response.setIntegrityViolation(true);
+
+        response.setViolationCount(
+                violationCount
+        );
+
+        response.setTerminationReason(
+                reason
+        );
+
+        response.setInterviewStatus(
+                "TERMINATED"
+        );
+
+        response.setSummary(
+                "Interview terminated due to "
+                        + violationCount
+                        + " proctoring violations. "
+                        + "Reason: "
+                        + reason
+        );
+
+
+        return response;
+    }
 
     // =========================================================
     // ROUND DECIMAL VALUE
@@ -1298,5 +1772,153 @@ public class InterviewServiceImpl implements InterviewService {
         return Math.round(
                 value * 100.0
         ) / 100.0;
+    }
+
+    @Override
+    public List<InterviewListResponse> getMyInterviews(
+            Long candidateId) {
+
+        User candidate =
+                userRepository.findById(candidateId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Candidate not found."
+                                )
+                        );
+
+        /*
+         * Get all interview questions generated
+         * for this candidate.
+         */
+        List<InterviewQuestion> questions =
+                interviewQuestionRepository
+                        .findByResume_Candidate_Id(
+                                candidateId
+                        );
+
+        if (questions.isEmpty()) {
+            return List.of();
+        }
+
+        /*
+         * Group questions by Job + Resume.
+         *
+         * One candidate may have multiple interviews
+         * for different jobs/resumes.
+         */
+        return questions.stream()
+                .collect(
+                        java.util.stream.Collectors.groupingBy(
+                                question ->
+                                        question.getJob().getId()
+                                                + "_"
+                                                + question.getResume().getId()
+                        )
+                )
+                .values()
+                .stream()
+                .map(interviewQuestions -> {
+
+                    InterviewQuestion firstQuestion =
+                            interviewQuestions.get(0);
+
+                    Job job =
+                            firstQuestion.getJob();
+
+                    Resume resume =
+                            firstQuestion.getResume();
+
+                    /*
+                     * Find submitted answers for this candidate.
+                     */
+                    List<InterviewAnswer> candidateAnswers =
+                            interviewAnswerRepository
+                                    .findByCandidate(candidate);
+
+                    long answeredCount =
+                            candidateAnswers.stream()
+                                    .filter(answer ->
+                                            answer.getQuestion()
+                                                    .getJob()
+                                                    .getId()
+                                                    .equals(job.getId())
+                                    )
+                                    .filter(answer ->
+                                            answer.getQuestion()
+                                                    .getResume()
+                                                    .getId()
+                                                    .equals(resume.getId())
+                                    )
+                                    .count();
+
+                    /*
+                     * Find final result if it exists.
+                     */
+                    InterviewResult interviewResult =
+                            interviewResultRepository
+                                    .findByCandidateAndJob(
+                                            candidate,
+                                            job
+                                    )
+                                    .orElse(null);
+
+                    String status;
+
+                    if (interviewResult != null) {
+
+                        status = "COMPLETED";
+
+                    } else if (answeredCount > 0) {
+
+                        status = "IN_PROGRESS";
+
+                    } else {
+
+                        status = "READY";
+                    }
+
+                    return InterviewListResponse.builder()
+
+                            .jobId(
+                                    job.getId()
+                            )
+
+                            .candidateId(
+                                    candidateId
+                            )
+
+                            .resumeId(
+                                    resume.getId()
+                            )
+
+                            .jobTitle(
+                                    job.getTitle()
+                            )
+
+                            .totalQuestions(
+                                    interviewQuestions.size()
+                            )
+
+                            .status(
+                                    status
+                            )
+
+                            .overallScore(
+                                    interviewResult != null
+                                            ? interviewResult
+                                            .getOverallScore()
+                                            : null
+                            )
+
+                            .recommendation(
+                                    interviewResult != null
+                                            ? interviewResult
+                                            .getRecommendation()
+                                            : null
+                            )
+
+                            .build();
+                })
+                .toList();
     }
 }

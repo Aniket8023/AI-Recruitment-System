@@ -22,6 +22,10 @@ public interface AssessmentRepository
             Job job
     );
 
+    List<Assessment> findByCandidateOrderByCreatedAtDesc(
+            User candidate
+    );
+
     List<Assessment> findByCandidateAndStatus(
             User candidate,
             AssessmentStatus status

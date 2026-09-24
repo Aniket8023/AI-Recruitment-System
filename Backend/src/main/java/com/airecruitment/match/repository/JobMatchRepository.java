@@ -4,6 +4,7 @@ import com.airecruitment.common.enums.MatchStatus;
 import com.airecruitment.job.entity.Job;
 import com.airecruitment.match.entity.JobMatch;
 import com.airecruitment.resume.entity.Resume;
+import com.airecruitment.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -34,5 +35,10 @@ public interface JobMatchRepository extends JpaRepository<JobMatch, Long> {
     Optional<JobMatch> findByJobIdAndResumeId(
             Long jobId,
             Long resumeId
+    );
+
+    List<JobMatch> findByJobRecruiterAndStatusOrderByCreatedAtDesc(
+            User recruiter,
+            MatchStatus status
     );
 }

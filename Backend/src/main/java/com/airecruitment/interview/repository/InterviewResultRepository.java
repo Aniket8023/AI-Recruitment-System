@@ -14,4 +14,9 @@ public interface InterviewResultRepository
             User candidate,
             Job job
     );
+
+    Optional<InterviewResult> findByCandidateIdAndJobId(
+            Long candidateId,
+            Long jobId
+    );
 }

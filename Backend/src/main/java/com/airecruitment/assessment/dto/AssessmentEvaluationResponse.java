@@ -9,6 +9,10 @@ import lombok.*;
 @Builder
 public class AssessmentEvaluationResponse {
 
+
+    private Long jobId;
+    private Long resumeId;
+
     private Long assessmentId;
 
     private Integer totalQuestions;

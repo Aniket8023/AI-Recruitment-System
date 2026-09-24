@@ -1,15 +1,22 @@
 package com.airecruitment.application.serviceimpl;
 
-import com.airecruitment.application.dto.ApplyJobRequest;
-import com.airecruitment.application.dto.JobApplicationResponse;
+import com.airecruitment.application.dto.*;
 import com.airecruitment.application.entity.JobApplication;
 import com.airecruitment.application.repository.JobApplicationRepository;
 import com.airecruitment.application.service.JobApplicationService;
+import com.airecruitment.assessment.entity.Assessment;
+import com.airecruitment.assessment.entity.AssessmentResult;
+import com.airecruitment.assessment.repository.AssessmentRepository;
+import com.airecruitment.assessment.repository.AssessmentResultRepository;
 import com.airecruitment.common.enums.ApplicationStatus;
 import com.airecruitment.common.enums.JobStatus;
 import com.airecruitment.common.enums.UserRole;
+import com.airecruitment.interview.entity.InterviewResult;
+import com.airecruitment.interview.repository.InterviewResultRepository;
 import com.airecruitment.job.entity.Job;
 import com.airecruitment.job.repository.JobRepository;
+import com.airecruitment.match.entity.JobMatch;
+import com.airecruitment.match.repository.JobMatchRepository;
 import com.airecruitment.resume.entity.Resume;
 import com.airecruitment.resume.repository.ResumeRepository;
 import com.airecruitment.user.entity.User;
@@ -36,12 +43,18 @@ public class JobApplicationServiceImpl
 
     private final JobMatchingService jobMatchingService;
 
+    private final AssessmentRepository assessmentRepository;
+
+    private final AssessmentResultRepository assessmentResultRepository;
+
+    private final InterviewResultRepository interviewResultRepository;
+
+    private final JobMatchRepository jobMatchRepository;
     // =========================================================
     // APPLY FOR JOB
     // =========================================================
 
     @Override
-    @Transactional
     public JobApplicationResponse applyForJob(
             Long jobId,
             ApplyJobRequest request) {
@@ -359,5 +372,483 @@ public class JobApplicationServiceImpl
                 )
 
                 .build();
+    }
+
+    // =========================================================
+// GET RECRUITER APPLICATIONS
+// =========================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecruiterApplicationResponse>
+    getRecruiterApplications() {
+
+        // =====================================================
+        // 1. GET LOGGED-IN USER
+        // =====================================================
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated()) {
+
+            throw new RuntimeException(
+                    "User is not authenticated."
+            );
+        }
+
+
+        // =====================================================
+        // 2. GET USER
+        // =====================================================
+
+        Object principal =
+                authentication.getPrincipal();
+
+        if (!(principal instanceof User)) {
+
+            throw new RuntimeException(
+                    "Invalid authentication principal."
+            );
+        }
+
+        User recruiter =
+                (User) principal;
+
+
+        // =====================================================
+        // 3. VALIDATE RECRUITER ROLE
+        // =====================================================
+
+        if (recruiter.getRole() !=
+                UserRole.RECRUITER) {
+
+            throw new RuntimeException(
+                    "Only recruiters can view recruiter applications."
+            );
+        }
+
+
+        // =====================================================
+        // 4. GET RECRUITER'S JOBS
+        // =====================================================
+
+        List<Job> recruiterJobs =
+                jobRepository.findByRecruiter(
+                        recruiter
+                );
+
+
+        // =====================================================
+        // 5. GET APPLICATIONS FOR THOSE JOBS
+        // =====================================================
+
+        return recruiterJobs.stream()
+
+                .flatMap(job ->
+                        jobApplicationRepository
+                                .findByJob(job)
+                                .stream()
+                )
+
+                .map(this::mapToRecruiterResponse)
+
+                .toList();
+    }
+
+    // =========================================================
+// MAP ENTITY -> RECRUITER RESPONSE
+// =========================================================
+
+    private RecruiterApplicationResponse
+    mapToRecruiterResponse(
+            JobApplication application) {
+
+        return RecruiterApplicationResponse.builder()
+
+                .applicationId(
+                        application.getId()
+                )
+
+                .candidateId(
+                        application.getCandidate()
+                                .getId()
+                )
+
+                .candidateName(
+                        application.getCandidate()
+                                .getFullName()
+                )
+
+                .candidateEmail(
+                        application.getCandidate()
+                                .getEmail()
+                )
+
+                .jobId(
+                        application.getJob()
+                                .getId()
+                )
+
+                .jobTitle(
+                        application.getJob()
+                                .getTitle()
+                )
+
+                .resumeId(
+                        application.getResume()
+                                .getId()
+                )
+
+                .status(
+                        application.getStatus()
+                )
+
+                .build();
+    }
+
+
+    @Override
+    public List<RecruiterCandidateResponse> getRecruiterCandidates() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                !(authentication.getPrincipal() instanceof User recruiter)) {
+
+            throw new RuntimeException(
+                    "Authenticated recruiter not found."
+            );
+        }
+
+        if (recruiter.getRole() != UserRole.RECRUITER &&
+                recruiter.getRole() != UserRole.COMPANY_ADMIN) {
+
+            throw new RuntimeException(
+                    "Only recruiters can access candidates."
+            );
+        }
+
+        List<JobApplication> applications =
+                jobApplicationRepository
+                        .findByJobRecruiterOrderByCreatedAtDesc(
+                                recruiter
+                        );
+
+        return applications.stream()
+                .map(application -> {
+
+                    Job job = application.getJob();
+                    Resume resume = application.getResume();
+                    User candidate = application.getCandidate();
+
+                    JobMatch jobMatch =
+                            jobMatchRepository
+                                    .findByJobAndResume(
+                                            job,
+                                            resume
+                                    )
+                                    .orElse(null);
+
+                    return RecruiterCandidateResponse.builder()
+                            .applicationId(application.getId())
+
+                            .candidateId(candidate.getId())
+                            .candidateName(candidate.getFullName())
+                            .candidateEmail(candidate.getEmail())
+
+                            .jobId(job.getId())
+                            .jobTitle(job.getTitle())
+
+                            .resumeId(resume.getId())
+
+                            .applicationStatus(
+                                    application.getStatus()
+                            )
+
+                            .matchScore(
+                                    jobMatch != null
+                                            ? jobMatch.getMatchScore()
+                                            : null
+                            )
+
+                            .recommendation(
+                                    jobMatch != null
+                                            ? jobMatch.getRecommendation()
+                                            : null
+                            )
+
+                            .build();
+                })
+                .toList();
+    }
+
+
+    @Override
+    public RecruiterCandidateDetailsResponse getRecruiterCandidateDetails(
+            Long applicationId
+    ) {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                !(authentication.getPrincipal() instanceof User recruiter)) {
+
+            throw new RuntimeException(
+                    "Authenticated recruiter not found."
+            );
+        }
+
+        if (recruiter.getRole() != UserRole.RECRUITER &&
+                recruiter.getRole() != UserRole.COMPANY_ADMIN) {
+
+            throw new RuntimeException(
+                    "Only recruiters can access candidate details."
+            );
+        }
+
+        JobApplication application =
+                jobApplicationRepository
+                        .findById(applicationId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Application not found."
+                                )
+                        );
+
+        Job job = application.getJob();
+
+        if (job.getRecruiter() == null ||
+                !job.getRecruiter()
+                        .getId()
+                        .equals(recruiter.getId())) {
+
+            throw new RuntimeException(
+                    "You are not authorized to view this candidate."
+            );
+        }
+
+        User candidate = application.getCandidate();
+        Resume resume = application.getResume();
+
+    /* =====================================================
+       AI JOB MATCH
+       ===================================================== */
+
+        JobMatch jobMatch =
+                jobMatchRepository
+                        .findByJobAndResume(
+                                job,
+                                resume
+                        )
+                        .orElse(null);
+
+    /* =====================================================
+       ASSESSMENT
+       ===================================================== */
+
+        Assessment assessment =
+                assessmentRepository
+                        .findByCandidateAndJobAndResume(
+                                candidate,
+                                job,
+                                resume
+                        )
+                        .orElse(null);
+
+        AssessmentResult assessmentResult = null;
+
+        if (assessment != null) {
+
+            assessmentResult =
+                    assessmentResultRepository
+                            .findByAssessment(assessment)
+                            .orElse(null);
+        }
+
+    /* =====================================================
+       INTERVIEW
+       ===================================================== */
+
+        InterviewResult interviewResult =
+                interviewResultRepository
+                        .findByCandidateIdAndJobId(
+                                candidate.getId(),
+                                job.getId()
+                        )
+                        .orElse(null);
+
+    /* =====================================================
+       RESPONSE BUILDER
+       ===================================================== */
+
+        RecruiterCandidateDetailsResponse
+                .RecruiterCandidateDetailsResponseBuilder response =
+                RecruiterCandidateDetailsResponse.builder()
+
+                        .applicationId(
+                                application.getId()
+                        )
+
+                        .candidateId(
+                                candidate.getId()
+                        )
+
+                        .candidateName(
+                                candidate.getFullName()
+                        )
+
+                        .candidateEmail(
+                                candidate.getEmail()
+                        )
+
+                        .candidatePhone(
+                                candidate.getPhone()
+                        )
+
+                        .jobId(
+                                job.getId()
+                        )
+
+                        .jobTitle(
+                                job.getTitle()
+                        )
+
+                        .resumeId(
+                                resume.getId()
+                        )
+
+                        .applicationStatus(
+                                application.getStatus()
+                        );
+
+    /* =====================================================
+       AI MATCH DATA
+       ===================================================== */
+
+        if (jobMatch != null) {
+
+            response
+                    .matchScore(
+                            jobMatch.getMatchScore()
+                    )
+
+                    .recommendation(
+                            jobMatch.getRecommendation()
+                    )
+
+                    .matchedTechnicalSkills(
+                            jobMatch.getMatchedTechnicalSkills()
+                    )
+
+                    .missingTechnicalSkills(
+                            jobMatch.getMissingTechnicalSkills()
+                    )
+
+                    .matchedSoftSkills(
+                            jobMatch.getMatchedSoftSkills()
+                    )
+
+                    .strengths(
+                            jobMatch.getStrengths()
+                    )
+
+                    .skillGaps(
+                            jobMatch.getSkillGaps()
+                    )
+
+                    .matchExplanation(
+                            jobMatch.getExplanation()
+                    );
+        }
+
+    /* =====================================================
+       ASSESSMENT DATA
+       ===================================================== */
+
+        if (assessment != null) {
+
+            response
+                    .assessmentId(
+                            assessment.getId()
+                    )
+
+                    .assessmentStatus(
+                            assessment.getStatus() != null
+                                    ? assessment.getStatus().name()
+                                    : null
+                    )
+
+                    .assessmentTotalQuestions(
+                            assessment.getTotalQuestions()
+                    );
+        }
+
+        if (assessmentResult != null) {
+
+            response
+                    .assessmentCorrectAnswers(
+                            assessmentResult.getCorrectAnswers()
+                    )
+
+                    .assessmentScore(
+                            assessmentResult.getOverallScore()
+                    )
+
+                    .assessmentPassed(
+                            assessmentResult.getPassed()
+                    );
+        }
+
+    /* =====================================================
+       INTERVIEW DATA
+       ===================================================== */
+
+        if (interviewResult != null) {
+
+            response
+                    .interviewStatus(
+                            interviewResult.getInterviewStatus()
+                    )
+
+                    .interviewTotalQuestions(
+                            interviewResult.getTotalQuestions()
+                    )
+
+                    .interviewAnsweredQuestions(
+                            interviewResult.getAnsweredQuestions()
+                    )
+
+                    .interviewScore(
+                            interviewResult.getOverallScore()
+                    )
+
+                    .interviewRecommendation(
+                            interviewResult.getRecommendation()
+                    )
+
+                    .interviewIntegrityViolation(
+                            interviewResult.getIntegrityViolation()
+                    )
+
+                    .interviewViolationCount(
+                            interviewResult.getViolationCount()
+                    )
+
+                    .interviewTerminationReason(
+                            interviewResult.getTerminationReason()
+                    );
+        }
+
+        return response.build();
     }
 }

@@ -18,37 +18,42 @@ public interface JobApplicationRepository
             Job job
     );
 
-
     boolean existsByCandidateAndJob(
             User candidate,
             Job job
     );
 
-
     List<JobApplication> findByCandidate(
             User candidate
     );
-
 
     List<JobApplication> findByCandidateAndStatus(
             User candidate,
             ApplicationStatus status
     );
 
-
     List<JobApplication> findByJob(
             Job job
     );
-
 
     List<JobApplication> findByJobAndStatus(
             Job job,
             ApplicationStatus status
     );
 
-
     Optional<JobApplication> findByJobAndResume(
             Job job,
             Resume resume
     );
+
+    // =========================================================
+    // RECRUITER APPLICATIONS
+    // =========================================================
+
+    List<JobApplication>
+    findByJobRecruiterOrderByCreatedAtDesc(
+            User recruiter
+    );
+
+
 }

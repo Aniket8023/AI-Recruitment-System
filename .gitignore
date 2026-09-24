@@ -1,23 +1,34 @@
-# Maven
+# ===============================
+# Java / Maven
+# ===============================
 Backend/target/
-**/target/
+Backend/.idea/
+Backend/*.iml
 
+# ===============================
+# Node / React
+# ===============================
+Frontend/node_modules/
+Frontend/dist/
+
+# ===============================
+# Environment files
+# ===============================
+.env
+.env.*
+Frontend/.env
+Frontend/.env.*
+Backend/.env
+Backend/.env.*
+
+# ===============================
 # IDE
+# ===============================
 .idea/
-*.iml
 .vscode/
 
-# Eclipse
-.classpath
-.project
-.settings/
-
-# Logs
-*.log
-
+# ===============================
 # OS
+# ===============================
 .DS_Store
 Thumbs.db
-
-# Environment
-.env

@@ -23,6 +23,10 @@ public interface JobService {
             JobStatus status
     );
 
+    List<JobResponse> getPublishedJobs();
+
+    JobResponse getPublicJob(Long jobId);
+
     JobResponse updateJob(
             Long jobId,
             UpdateJobRequest request

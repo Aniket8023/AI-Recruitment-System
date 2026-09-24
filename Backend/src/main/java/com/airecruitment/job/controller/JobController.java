@@ -55,6 +55,27 @@ public class JobController {
 
 
     // =========================================================
+// GET ALL PUBLISHED JOBS
+// =========================================================
+
+    @GetMapping("/published")
+    public List<JobResponse> getPublishedJobs() {
+
+        return jobService.getPublishedJobs();
+    }
+
+    // =========================================================
+// GET PUBLIC JOB DETAILS
+// =========================================================
+
+    @GetMapping("/public/{jobId}")
+    public JobResponse getPublicJob(
+            @PathVariable Long jobId) {
+
+        return jobService.getPublicJob(jobId);
+    }
+
+    // =========================================================
     // GET SINGLE JOB
     // =========================================================
 
@@ -122,4 +143,6 @@ public class JobController {
                 jobId
         );
     }
+
+
 }

@@ -2,6 +2,8 @@ package com.airecruitment.resume.serviceimpl;
 
 import com.airecruitment.ai.client.AiClient;
 import com.airecruitment.resume.dto.ResumeAnalysisResponse;
+import com.airecruitment.resume.dto.ResumeFileResponse;
+import com.airecruitment.resume.dto.ResumeResponse;
 import com.airecruitment.resume.entity.Resume;
 import com.airecruitment.resume.entity.ResumeAnalysis;
 import com.airecruitment.resume.repository.ResumeAnalysisRepository;
@@ -14,6 +16,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -30,11 +35,15 @@ public class ResumeServiceImpl implements ResumeService {
     private final AiClient aiClient;
 
     @Override
-    public String uploadResume(Long candidateId, MultipartFile file) {
+    public String uploadResume(
+            Long candidateId,
+            MultipartFile file) {
 
         // 1. Validate file
         if (file == null || file.isEmpty()) {
-            throw new RuntimeException("Resume file is required.");
+            throw new RuntimeException(
+                    "Resume file is required."
+            );
         }
 
         // 2. Validate file type
@@ -54,7 +63,8 @@ public class ResumeServiceImpl implements ResumeService {
         User candidate = userRepository.findById(candidateId)
                 .orElseThrow(() ->
                         new RuntimeException(
-                                "Candidate not found with id: " + candidateId
+                                "Candidate not found with id: "
+                                        + candidateId
                         )
                 );
 
@@ -70,19 +80,75 @@ public class ResumeServiceImpl implements ResumeService {
             );
         }
 
-        // 5. Create Resume entity
+        // 5. Read original file
+        byte[] fileData;
+
+        try {
+
+            fileData = file.getBytes();
+
+        } catch (IOException e) {
+
+            throw new RuntimeException(
+                    "Failed to read resume file.",
+                    e
+            );
+        }
+
+        // 6. Create Resume entity
         Resume resume = Resume.builder()
                 .candidate(candidate)
                 .fileName(file.getOriginalFilename())
                 .fileType(contentType)
+                .fileData(fileData)
                 .extractedText(extractedText)
                 .build();
 
-        // 6. Save
+        // 7. Save
         resumeRepository.save(resume);
 
         return "Resume uploaded successfully. Resume ID: "
                 + resume.getId();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResumeFileResponse getResumeFile(Long resumeId) {
+
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Resume not found with id: " + resumeId
+                        )
+                );
+
+        if (resume.getFileData() == null ||
+                resume.getFileData().length == 0) {
+
+            throw new RuntimeException(
+                    "Resume file data is not available."
+            );
+        }
+
+        return new ResumeFileResponse(
+                resume.getFileData(),
+                resume.getFileName(),
+                resume.getFileType()
+        );
+    }
+
+    private byte[] getFileBytes(MultipartFile file) {
+
+        try {
+            return file.getBytes();
+
+        } catch (IOException e) {
+
+            throw new RuntimeException(
+                    "Failed to read resume file.",
+                    e
+            );
+        }
     }
 
     @Override
@@ -177,6 +243,28 @@ public class ResumeServiceImpl implements ResumeService {
         );
 
         return response;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ResumeResponse> getMyResumes(Long candidateId) {
+
+        User candidate = userRepository.findById(candidateId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Candidate not found with id: " + candidateId
+                        )
+                );
+
+        return resumeRepository.findByCandidate(candidate)
+                .stream()
+                .map(resume -> ResumeResponse.builder()
+                        .resumeId(resume.getId())
+                        .candidateId(resume.getCandidate().getId())
+                        .fileName(resume.getFileName())
+                        .fileType(resume.getFileType())
+                        .build())
+                .toList();
     }
 
     private String buildResumeAnalysisPrompt(Resume resume) {

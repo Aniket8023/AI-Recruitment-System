@@ -1,10 +1,13 @@
 package com.airecruitment.assessment.controller;
 
+import com.airecruitment.assessment.dto.AssessmentEvaluationResponse;
 import com.airecruitment.assessment.dto.AssessmentResponse;
 import com.airecruitment.assessment.service.AssessmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/assessments")
@@ -23,6 +26,21 @@ public class AssessmentController {
         return assessmentService.createAssessment(
                 jobId,
                 resumeId
+        );
+    }
+
+    @GetMapping("/my")
+    public List<AssessmentResponse> getMyAssessments() {
+
+        return assessmentService.getMyAssessments();
+    }
+
+    @GetMapping("/{assessmentId}/result")
+    public AssessmentEvaluationResponse getAssessmentResult(
+            @PathVariable Long assessmentId
+    ) {
+        return assessmentService.getAssessmentResult(
+                assessmentId
         );
     }
 }

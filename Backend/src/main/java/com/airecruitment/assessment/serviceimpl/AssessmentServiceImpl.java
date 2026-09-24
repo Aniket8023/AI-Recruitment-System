@@ -2,8 +2,10 @@ package com.airecruitment.assessment.serviceimpl;
 
 import com.airecruitment.application.entity.JobApplication;
 import com.airecruitment.application.repository.JobApplicationRepository;
+import com.airecruitment.assessment.dto.AssessmentEvaluationResponse;
 import com.airecruitment.assessment.dto.AssessmentResponse;
 import com.airecruitment.assessment.entity.Assessment;
+import com.airecruitment.assessment.entity.AssessmentResult;
 import com.airecruitment.assessment.enums.AssessmentStatus;
 import com.airecruitment.assessment.enums.AssessmentType;
 import com.airecruitment.assessment.repository.AssessmentRepository;
@@ -22,6 +24,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.airecruitment.assessment.repository.AssessmentResultRepository;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +43,7 @@ public class AssessmentServiceImpl
 
     private final JobApplicationRepository jobApplicationRepository;
 
+    private final AssessmentResultRepository assessmentResultRepository;
 
     // =========================================================
     // CREATE ASSESSMENT
@@ -257,48 +263,139 @@ public class AssessmentServiceImpl
         // 14. CONVERT ENTITY -> DTO
         // =====================================================
 
+        return mapToResponse(assessment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AssessmentResponse> getMyAssessments() {
+
+        User candidate = getAuthenticatedCandidate();
+
+        return assessmentRepository
+                .findByCandidateOrderByCreatedAtDesc(candidate)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    private AssessmentResponse mapToResponse(
+            Assessment assessment
+    ) {
+
         return AssessmentResponse.builder()
-
-                .assessmentId(
-                        savedAssessment.getId()
-                )
-
+                .assessmentId(assessment.getId())
                 .candidateId(
-                        savedAssessment
-                                .getCandidate()
-                                .getId()
+                        assessment.getCandidate().getId()
                 )
-
                 .jobId(
-                        savedAssessment
-                                .getJob()
-                                .getId()
+                        assessment.getJob().getId()
                 )
-
+                .jobTitle(
+                        assessment.getJob().getTitle()
+                )
                 .resumeId(
-                        savedAssessment
-                                .getResume()
-                                .getId()
+                        assessment.getResume().getId()
                 )
-
                 .type(
-                        savedAssessment.getType()
+                        assessment.getType()
                 )
-
                 .status(
-                        savedAssessment.getStatus()
+                        assessment.getStatus()
                 )
-
                 .totalQuestions(
-                        savedAssessment
-                                .getTotalQuestions()
+                        assessment.getTotalQuestions()
                 )
-
                 .durationMinutes(
-                        savedAssessment
-                                .getDurationMinutes()
+                        assessment.getDurationMinutes()
                 )
+                .build();
+    }
 
+    private User getAuthenticatedCandidate() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null ||
+                authentication.getPrincipal() == null) {
+
+            throw new RuntimeException(
+                    "User is not authenticated."
+            );
+        }
+
+        Object principal =
+                authentication.getPrincipal();
+
+        if (!(principal instanceof User user)) {
+
+            throw new RuntimeException(
+                    "Invalid authenticated user."
+            );
+        }
+
+        if (user.getRole() != UserRole.CANDIDATE) {
+
+            throw new RuntimeException(
+                    "Only candidates can access assessments."
+            );
+        }
+
+        return user;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AssessmentEvaluationResponse getAssessmentResult(
+            Long assessmentId
+    ) {
+
+        User candidate = getAuthenticatedCandidate();
+
+        Assessment assessment =
+                assessmentRepository.findById(assessmentId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Assessment not found."
+                                )
+                        );
+
+        // Security check
+        if (!assessment.getCandidate()
+                .getId()
+                .equals(candidate.getId())) {
+
+            throw new RuntimeException(
+                    "You are not authorized to access this assessment."
+            );
+        }
+
+        AssessmentResult result =
+                assessmentResultRepository
+                        .findByAssessment(assessment)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Assessment result not found."
+                                )
+                        );
+
+        return AssessmentEvaluationResponse.builder()
+                .jobId(assessment.getJob().getId())
+                .resumeId(assessment.getResume().getId())
+                .assessmentId(assessment.getId())
+                .totalQuestions(result.getTotalQuestions())
+                .attemptedQuestions(result.getAttemptedQuestions())
+                .correctAnswers(result.getCorrectAnswers())
+                .aptitudeScore(result.getAptitudeScore())
+                .technicalScore(result.getTechnicalScore())
+                .codingScore(result.getCodingScore())
+                .overallScore(result.getOverallScore())
+                .passed(result.getPassed())
+                .recommendation(result.getRecommendation())
+                .feedback(result.getFeedback())
                 .build();
     }
 }

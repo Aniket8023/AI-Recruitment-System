@@ -270,6 +270,46 @@ public class JobServiceImpl
 
 
     // =========================================================
+// GET ALL PUBLISHED JOBS
+// =========================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<JobResponse> getPublishedJobs() {
+
+        return jobRepository
+                .findByStatus(JobStatus.PUBLISHED)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+
+    // =========================================================
+// GET PUBLIC JOB
+// =========================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public JobResponse getPublicJob(Long jobId) {
+
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Job not found."
+                        )
+                );
+
+        if (job.getStatus() != JobStatus.PUBLISHED) {
+            throw new RuntimeException(
+                    "This job is not currently available."
+            );
+        }
+
+        return mapToResponse(job);
+    }
+
+    // =========================================================
     // CLOSE JOB
     // =========================================================
 

@@ -4,6 +4,7 @@ import com.airecruitment.assessment.entity.Assessment;
 import com.airecruitment.assessment.entity.AssessmentResult;
 import com.airecruitment.assessment.repository.AssessmentRepository;
 import com.airecruitment.assessment.repository.AssessmentResultRepository;
+import com.airecruitment.common.enums.ApplicationStatus;
 import com.airecruitment.common.enums.MatchStatus;
 import com.airecruitment.interview.entity.InterviewResult;
 import com.airecruitment.interview.repository.InterviewResultRepository;
@@ -21,10 +22,18 @@ import com.airecruitment.resume.repository.ResumeRepository;
 import com.airecruitment.user.entity.User;
 import com.airecruitment.user.repository.UserRepository;
 import com.google.genai.types.Candidate;
+import com.airecruitment.resume.dto.ResumeAnalysisResponse;
+import com.airecruitment.resume.service.ResumeService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.airecruitment.application.entity.JobApplication;
+import com.airecruitment.application.repository.JobApplicationRepository;
+import com.airecruitment.common.enums.UserRole;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +51,8 @@ public class JobMatchingServiceImpl
 
     private final JobMatchRepository jobMatchRepository;
 
+    private final JobApplicationRepository jobApplicationRepository;
+
     private final AiMatchingClient aiMatchingClient;
 
     private final UserRepository userRepository;
@@ -51,6 +62,8 @@ public class JobMatchingServiceImpl
     private final AssessmentResultRepository assessmentResultRepository;
 
     private final InterviewResultRepository interviewResultRepository;
+
+    private final ResumeService resumeService;
 
     @Override
     @Transactional
@@ -84,15 +97,38 @@ public class JobMatchingServiceImpl
 
 
         // 3. Find Resume AI Analysis
+        // =====================================================
+// 3. FIND OR GENERATE RESUME AI ANALYSIS
+// =====================================================
+
         ResumeAnalysis resumeAnalysis =
                 resumeAnalysisRepository
                         .findByResumeId(resumeId)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Resume analysis not found for resume id: "
-                                                + resumeId
-                                )
-                        );
+                        .orElse(null);
+
+        if (resumeAnalysis == null) {
+
+            System.out.println(
+                    "Resume analysis not found. Generating AI analysis..."
+            );
+
+            ResumeAnalysisResponse analysisResponse =
+                    resumeService.analyzeResume(resumeId);
+
+            resumeAnalysis =
+                    resumeAnalysisRepository
+                            .findByResumeId(resumeId)
+                            .orElseThrow(() ->
+                                    new RuntimeException(
+                                            "Resume analysis could not be generated for resume id: "
+                                                    + resumeId
+                                    )
+                            );
+
+            System.out.println(
+                    "Resume AI analysis generated successfully."
+            );
+        }
 
 
         // 4. Build AI Prompt
@@ -144,6 +180,7 @@ public class JobMatchingServiceImpl
         // 8. Return response
         return response;
     }
+
 
 
     private void saveMatchResult(
@@ -351,59 +388,259 @@ public class JobMatchingServiceImpl
     }
 
     @Override
+    @Transactional
     public void shortlistCandidate(
             Long jobId,
             Long resumeId) {
 
-        Job job = jobRepository.findById(jobId)
-                .orElseThrow(() ->
-                        new RuntimeException("Job not found.")
-                );
+        // =====================================================
+        // 1. GET AUTHENTICATED USER
+        // =====================================================
 
-        Resume resume = resumeRepository.findById(resumeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Resume not found.")
-                );
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
 
-        JobMatch jobMatch = jobMatchRepository
-                .findByJobAndResume(job, resume)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Job match not found."
-                        )
-                );
+        if (authentication == null ||
+                !(authentication.getPrincipal() instanceof User recruiter)) {
 
-        jobMatch.setStatus(MatchStatus.SHORTLISTED);
+            throw new RuntimeException(
+                    "Authenticated recruiter not found."
+            );
+        }
+
+
+        // =====================================================
+        // 2. VALIDATE RECRUITER ROLE
+        // =====================================================
+
+        if (recruiter.getRole() != UserRole.RECRUITER &&
+                recruiter.getRole() != UserRole.COMPANY_ADMIN) {
+
+            throw new RuntimeException(
+                    "Only recruiters can shortlist candidates."
+            );
+        }
+
+
+        // =====================================================
+        // 3. FIND JOB
+        // =====================================================
+
+        Job job =
+                jobRepository.findById(jobId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job not found."
+                                )
+                        );
+
+
+        // =====================================================
+        // 4. VALIDATE JOB OWNERSHIP
+        // =====================================================
+
+        if (job.getRecruiter() == null ||
+                !job.getRecruiter()
+                        .getId()
+                        .equals(recruiter.getId())) {
+
+            throw new RuntimeException(
+                    "You are not authorized to shortlist candidates for this job."
+            );
+        }
+
+
+        // =====================================================
+        // 5. FIND RESUME
+        // =====================================================
+
+        Resume resume =
+                resumeRepository.findById(resumeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Resume not found."
+                                )
+                        );
+
+
+        // =====================================================
+        // 6. FIND JOB MATCH
+        // =====================================================
+
+        JobMatch jobMatch =
+                jobMatchRepository
+                        .findByJobAndResume(job, resume)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job match not found."
+                                )
+                        );
+
+
+        // =====================================================
+        // 7. FIND APPLICATION
+        // =====================================================
+
+        JobApplication application =
+                jobApplicationRepository
+                        .findByJobAndResume(job, resume)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job application not found."
+                                )
+                        );
+
+
+        // =====================================================
+        // 8. UPDATE JOB MATCH
+        // =====================================================
+
+        jobMatch.setStatus(
+                MatchStatus.SHORTLISTED
+        );
 
         jobMatchRepository.save(jobMatch);
+
+
+        // =====================================================
+        // 9. UPDATE APPLICATION
+        // =====================================================
+
+        application.setStatus(
+                ApplicationStatus.SHORTLISTED
+        );
+
+        jobApplicationRepository.save(application);
     }
 
     @Override
+    @Transactional
     public void rejectCandidate(
             Long jobId,
             Long resumeId) {
 
-        Job job = jobRepository.findById(jobId)
-                .orElseThrow(() ->
-                        new RuntimeException("Job not found.")
-                );
+        // =====================================================
+        // 1. GET AUTHENTICATED USER
+        // =====================================================
 
-        Resume resume = resumeRepository.findById(resumeId)
-                .orElseThrow(() ->
-                        new RuntimeException("Resume not found.")
-                );
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
 
-        JobMatch jobMatch = jobMatchRepository
-                .findByJobAndResume(job, resume)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Job match not found."
-                        )
-                );
+        if (authentication == null ||
+                !(authentication.getPrincipal() instanceof User recruiter)) {
 
-        jobMatch.setStatus(MatchStatus.REJECTED);
+            throw new RuntimeException(
+                    "Authenticated recruiter not found."
+            );
+        }
+
+
+        // =====================================================
+        // 2. VALIDATE RECRUITER ROLE
+        // =====================================================
+
+        if (recruiter.getRole() != UserRole.RECRUITER &&
+                recruiter.getRole() != UserRole.COMPANY_ADMIN) {
+
+            throw new RuntimeException(
+                    "Only recruiters can reject candidates."
+            );
+        }
+
+
+        // =====================================================
+        // 3. FIND JOB
+        // =====================================================
+
+        Job job =
+                jobRepository.findById(jobId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job not found."
+                                )
+                        );
+
+
+        // =====================================================
+        // 4. VALIDATE JOB OWNERSHIP
+        // =====================================================
+
+        if (job.getRecruiter() == null ||
+                !job.getRecruiter()
+                        .getId()
+                        .equals(recruiter.getId())) {
+
+            throw new RuntimeException(
+                    "You are not authorized to reject candidates for this job."
+            );
+        }
+
+
+        // =====================================================
+        // 5. FIND RESUME
+        // =====================================================
+
+        Resume resume =
+                resumeRepository.findById(resumeId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Resume not found."
+                                )
+                        );
+
+
+        // =====================================================
+        // 6. FIND JOB MATCH
+        // =====================================================
+
+        JobMatch jobMatch =
+                jobMatchRepository
+                        .findByJobAndResume(job, resume)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job match not found."
+                                )
+                        );
+
+
+        // =====================================================
+        // 7. FIND APPLICATION
+        // =====================================================
+
+        JobApplication application =
+                jobApplicationRepository
+                        .findByJobAndResume(job, resume)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Job application not found."
+                                )
+                        );
+
+
+        // =====================================================
+        // 8. UPDATE JOB MATCH
+        // =====================================================
+
+        jobMatch.setStatus(
+                MatchStatus.REJECTED
+        );
 
         jobMatchRepository.save(jobMatch);
+
+
+        // =====================================================
+        // 9. UPDATE APPLICATION
+        // =====================================================
+
+        application.setStatus(
+                ApplicationStatus.REJECTED
+        );
+
+        jobApplicationRepository.save(application);
     }
 
 
@@ -831,6 +1068,136 @@ public class JobMatchingServiceImpl
 
                 .status(
                         jobMatch.getStatus().name()
+                )
+
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecommendedJobResponse> getRecommendedJobs(Long candidateId) {
+
+        User candidate =
+                userRepository.findById(candidateId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Candidate not found."
+                                )
+                        );
+
+        List<Resume> resumes =
+                resumeRepository.findByCandidate(candidate);
+
+        if (resumes.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<RecommendedJobResponse> recommendations =
+                new ArrayList<>();
+
+        for (Resume resume : resumes) {
+
+            List<JobMatch> matches =
+                    jobMatchRepository
+                            .findByResumeOrderByMatchScoreDesc(resume);
+
+            for (JobMatch match : matches) {
+
+                Job job = match.getJob();
+
+                recommendations.add(
+                        RecommendedJobResponse.builder()
+
+                                .jobId(job.getId())
+
+                                .jobTitle(job.getTitle())
+
+                                .location(job.getLocation())
+
+                                .workMode(job.getWorkMode())
+
+                                .matchScore(match.getMatchScore())
+
+                                .recommendation(
+                                        match.getRecommendation()
+                                )
+
+                                .explanation(
+                                        match.getExplanation()
+                                )
+
+                                .build()
+                );
+            }
+        }
+
+        recommendations.sort(
+                (a, b) ->
+                        Double.compare(
+                                b.getMatchScore(),
+                                a.getMatchScore()
+                        )
+        );
+
+        return recommendations
+                .stream()
+                .limit(5)
+                .toList();
+    }
+
+    private RecruiterShortlistedResponse
+    mapShortlisted(
+            JobMatch match) {
+
+        return RecruiterShortlistedResponse.builder()
+
+                .jobMatchId(
+                        match.getId()
+                )
+
+                .jobId(
+                        match.getJob()
+                                .getId()
+                )
+
+                .jobTitle(
+                        match.getJob()
+                                .getTitle()
+                )
+
+                .candidateId(
+                        match.getResume()
+                                .getCandidate()
+                                .getId()
+                )
+
+                .candidateName(
+                        match.getResume()
+                                .getCandidate()
+                                .getFullName()
+                )
+
+                .candidateEmail(
+                        match.getResume()
+                                .getCandidate()
+                                .getEmail()
+                )
+
+                .resumeId(
+                        match.getResume()
+                                .getId()
+                )
+
+                .matchScore(
+                        match.getMatchScore()
+                )
+
+                .recommendation(
+                        match.getRecommendation()
+                )
+
+                .status(
+                        match.getStatus()
                 )
 
                 .build();

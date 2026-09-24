@@ -17,6 +17,8 @@ public class AssessmentResponse {
 
     private Long jobId;
 
+    private String jobTitle;
+
     private Long resumeId;
 
     private AssessmentType type;

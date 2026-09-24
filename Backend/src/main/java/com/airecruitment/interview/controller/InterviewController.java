@@ -3,7 +3,9 @@ package com.airecruitment.interview.controller;
 import com.airecruitment.interview.dto.*;
 import com.airecruitment.interview.service.InterviewService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -69,6 +71,48 @@ public class InterviewController {
                 candidateId,
                 jobId,
                 resumeId
+        );
+    }
+
+    @GetMapping("/candidates/{candidateId}/interviews")
+    public List<InterviewListResponse> getMyInterviews(
+            @PathVariable Long candidateId) {
+
+        return interviewService.getMyInterviews(
+                candidateId
+        );
+    }
+
+
+    @PostMapping(
+            value = "/candidates/{candidateId}/questions/{questionId}/voice-answer",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public InterviewEvaluationResponse submitVoiceAnswer(
+            @PathVariable Long candidateId,
+            @PathVariable Long questionId,
+            @RequestPart("audio") MultipartFile audio) {
+
+        return interviewService.submitVoiceAnswer(
+                candidateId,
+                questionId,
+                audio
+        );
+    }
+
+    @PostMapping(
+            "/candidates/{candidateId}/jobs/{jobId}/terminate"
+    )
+    public InterviewResultResponse terminateInterview(
+            @PathVariable Long candidateId,
+            @PathVariable Long jobId,
+            @RequestBody InterviewTerminationRequest request) {
+
+        return interviewService.terminateInterview(
+                candidateId,
+                jobId,
+                request.getViolationCount(),
+                request.getReason()
         );
     }
 }

@@ -24,4 +24,8 @@ public interface InterviewQuestionRepository
             Long jobId,
             Long resumeId
     );
+
+    List<InterviewQuestion> findByResume_Candidate_Id(
+            Long candidateId
+    );
 }

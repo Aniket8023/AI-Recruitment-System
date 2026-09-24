@@ -114,4 +114,12 @@ public class JobMatchingController {
                 resumeId
         );
     }
+
+    @GetMapping("/candidates/{candidateId}/recommendations")
+    public List<RecommendedJobResponse> getRecommendedJobs(
+            @PathVariable Long candidateId) {
+
+        return jobMatchingService
+                .getRecommendedJobs(candidateId);
+    }
 }

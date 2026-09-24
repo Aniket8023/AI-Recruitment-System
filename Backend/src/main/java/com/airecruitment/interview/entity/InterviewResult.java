@@ -73,4 +73,18 @@ public class InterviewResult extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String summary;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean integrityViolation = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer violationCount = 0;
+
+    @Column(length = 255)
+    private String terminationReason;
+
+    @Column(length = 30)
+    private String interviewStatus;
 }

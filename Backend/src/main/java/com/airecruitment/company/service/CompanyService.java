@@ -5,7 +5,17 @@ import com.airecruitment.company.dto.CompanyResponse;
 
 public interface CompanyService {
 
-    CompanyResponse createCompany(CompanyRequest request);
+    CompanyResponse createCompany(
+            CompanyRequest request
+    );
 
-    CompanyResponse getCompany(Long companyId);
+    CompanyResponse getCompany(
+            Long companyId
+    );
+
+    CompanyResponse getMyCompany();
+
+    CompanyResponse updateMyCompany(
+            CompanyRequest request
+    );
 }

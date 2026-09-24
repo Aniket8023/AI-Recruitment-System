@@ -1,10 +1,8 @@
 package com.airecruitment.company.entity;
 
 import com.airecruitment.common.entity.BaseEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Index;
-import jakarta.persistence.Table;
+import com.airecruitment.user.entity.User;
+import jakarta.persistence.*;
 import lombok.*;
 
 @Getter
@@ -16,11 +14,25 @@ import lombok.*;
 @Table(
         name = "companies",
         indexes = {
-                @Index(name = "idx_company_email", columnList = "companyEmail"),
-                @Index(name = "idx_company_name", columnList = "companyName")
+                @Index(
+                        name = "idx_company_email",
+                        columnList = "companyEmail"
+                ),
+                @Index(
+                        name = "idx_company_name",
+                        columnList = "companyName"
+                )
         }
 )
 public class Company extends BaseEntity {
+
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(
+            name = "recruiter_id",
+            nullable = false,
+            unique = true
+    )
+    private User recruiter;
 
     @Column(nullable = false, length = 150)
     private String companyName;
@@ -55,6 +67,6 @@ public class Company extends BaseEntity {
     private String logoUrl;
 
     @Column(nullable = false)
+    @Builder.Default
     private Boolean verified = false;
-
 }
