@@ -19,17 +19,17 @@ public class CorsConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(List.of(
-            "http://localhost:5173",
-            "https://hireai-bice.vercel.app"
+                "http://localhost:5173",
+                "https://hireai-bice.vercel.app"
         ));
 
         configuration.setAllowedMethods(List.of(
-            "GET",
-            "POST",
-            "PUT",
-            "PATCH",
-            "DELETE",
-            "OPTIONS"
+                "GET",
+                "POST",
+                "PUT",
+                "PATCH",
+                "DELETE",
+                "OPTIONS"
         ));
 
         configuration.setAllowedHeaders(List.of("*"));
@@ -37,9 +37,12 @@ public class CorsConfig {
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =
-            new UrlBasedCorsConfigurationSource();
+                new UrlBasedCorsConfigurationSource();
 
-        source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration(
+                "/**",
+                configuration
+        );
 
         return source;
     }
