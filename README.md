@@ -1,11 +1,11 @@
-# 🚀 HireAI - AI-Powered Recruitment System
+#         🚀 HireAI - AI-Powered Recruitment System
 
 <p align="center">
   <strong>HireAI</strong> is an intelligent full-stack recruitment platform that connects candidates and recruiters through AI-assisted job matching, assessments, AI interviews, and recruitment analytics.
 </p>
 
 <p align="center">
-  🌐 <a href="https://hireai.vercel.app">Live Demo</a> •
+  🌐 <a href="https://hireai-bice.vercel.app">Live Demo</a> •
   📦 <a href="https://github.com/Aniket8023/AI-Recruitment-System">GitHub Repository</a>
 </p>
 
