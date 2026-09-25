@@ -274,13 +274,15 @@ AI-Recruitment-System/
 
 ### Login Page
 
-![HireAI Login](docs/screenshots/01-login.png)
+<img width="1920" height="1080" alt="Screenshot 2026-09-25 144330" src="https://github.com/user-attachments/assets/7c11b05e-20cc-4e24-87ae-50d689f366ed" />
+
 
 ---
 
 ## 👨‍💻 Candidate Dashboard
 
-![Candidate Dashboard](docs/screenshots/02-candidate-dashboard.png)
+<img width="1920" height="1080" alt="Screenshot 2026-09-25 145515" src="https://github.com/user-attachments/assets/e70d6c3f-fb10-4d9c-9e5c-ec8bebcbd748" />
+
 
 ---
 
@@ -288,100 +290,79 @@ AI-Recruitment-System/
 
 ### Job Listing
 
-![Jobs Listing](docs/screenshots/03-jobs.png)
+<img width="1920" height="1080" alt="Screenshot 2026-09-25 145551" src="https://github.com/user-attachments/assets/cd304faf-672c-4b93-8f90-cd11e2e67394" />
+
 
 ### Job Details
 
-![Job Details](docs/screenshots/04-job-details.png)
+<img width="1920" height="1080" alt="Screenshot 2026-09-25 145622" src="https://github.com/user-attachments/assets/130935a9-091b-4fa8-89cf-71672586f3f0" />
+
 
 ---
 
 ## 🤖 AI Job Matching
 
-![AI Job Matching](docs/screenshots/05-ai-job-matching.png)
+<img width="1920" height="1080" alt="Screenshot 2026-09-25 145658" src="https://github.com/user-attachments/assets/5c4bbb41-305c-4bd5-96d0-6af0f2264f73" />
+
 
 ---
 
 ## 📝 Technical Assessment
 
-![Assessment](docs/screenshots/06-assessment.png)
+<img width="1920" height="1080" alt="Screenshot 2026-09-19 144801" src="https://github.com/user-attachments/assets/8f0e726b-8701-4e4e-b4fe-1f3715907ec9" />
+
 
 ---
 
 ## 🎤 AI Interview
 
-![AI Interview](docs/screenshots/07-ai-interview.png)
+<img width="1920" height="1080" alt="Screenshot 2026-09-21 125111" src="https://github.com/user-attachments/assets/201941be-2b24-4831-8935-afeb0d976b20" />
+
 
 ---
 
 ## 📊 Interview Result
 
-![Interview Result](docs/screenshots/08-interview-result.png)
+<img width="1920" height="1080" alt="Screenshot 2026-09-25 145921" src="https://github.com/user-attachments/assets/2ec186c2-7bfc-44e5-b287-8f05697eb586" />
+
 
 ---
 
+## 📊 Interview Result Violation
+
+<img width="1920" height="1080" alt="Screenshot 2026-09-25 150013" src="https://github.com/user-attachments/assets/21785c00-10dd-43fa-90f9-0db386ab7db1" />
+
+
 ## 🏢 Recruiter Dashboard
 
-![Recruiter Dashboard](docs/screenshots/09-recruiter-dashboard.png)
+<img width="1920" height="1080" alt="Screenshot 2026-09-25 150055" src="https://github.com/user-attachments/assets/cdaa5c6d-feb9-4707-bff4-de455f82c995" />
+
 
 ---
 
 ## 👥 Recruiter Candidates
 
-![Recruiter Candidates](docs/screenshots/10-recruiter-candidates.png)
+<img width="1920" height="1080" alt="Screenshot 2026-09-25 150120" src="https://github.com/user-attachments/assets/e7975199-d55f-4247-b976-fc697ebf91a3" />
+
 
 ---
 
 ## ⭐ Shortlisted Candidates
 
-![Shortlisted Candidates](docs/screenshots/11-shortlisted.png)
+<img width="1920" height="1080" alt="Screenshot 2026-09-25 150323" src="https://github.com/user-attachments/assets/a5c36f0c-4cf1-4d8d-ba67-1313e44316c1" />
+
 
 ---
 
 ## 📊 Candidate Evaluation
 
-![Candidate Evaluation](docs/screenshots/12-candidate-evaluation.png)
+<img width="1920" height="1080" alt="Screenshot 2026-09-25 150519" src="https://github.com/user-attachments/assets/f0a4f215-8f9f-417f-92e3-9746f462c85d" />
+
 
 ---
 
-# 📸 Recommended Screenshots
 
-For a professional GitHub repository, you don't need to upload every single screen.
 
-I recommend keeping these **8 important screenshots**:
-
-```text
-01-login.png
-02-candidate-dashboard.png
-05-ai-job-matching.png
-06-assessment.png
-07-ai-interview.png
-09-recruiter-dashboard.png
-10-recruiter-candidates.png
-11-shortlisted.png
-12-candidate-evaluation.png
-```
-
-### Screenshot Guidelines
-
-Use screenshots around:
-
-```text
-1440 × 900
-```
-
-Keep:
-
-- Consistent browser zoom
-- Consistent UI theme
-- Realistic demo data
-- Clean dashboard state
-- No passwords
-- No API keys
-- No JWT tokens
-- No personal/private information
-
----
 
 # 🔄 Candidate Workflow
 
