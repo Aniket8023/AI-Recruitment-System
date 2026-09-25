@@ -1,4 +1,4 @@
-🚀 HireAI - AI-Powered Recruitment System
+# 🚀 HireAI - AI-Powered Recruitment System
 
 <p align="center">
   <strong>HireAI</strong> is an intelligent full-stack recruitment platform that connects candidates and recruiters through AI-assisted job matching, assessments, AI interviews, and recruitment analytics.
@@ -9,265 +9,231 @@
   📦 <a href="https://github.com/Aniket8023/AI-Recruitment-System">GitHub Repository</a>
 </p>
 
-📌 Overview
-
-HireAI streamlines the recruitment lifecycle from resume submission and job matching to technical assessment, AI interview, candidate evaluation, and recruiter shortlisting.
-
-Core capabilities
-
-👤 Candidate registration, authentication and profile management
-
-🏢 Recruiter/company profile management
-
-💼 Job creation, publishing, closing and archiving
-
-📄 Resume upload and AI-powered resume analysis
-
-🤖 AI-based job-resume matching
-
-📝 AI-generated technical assessments
-
-🎤 AI-powered interview with voice-answer support
-
-🛡️ Interview proctoring and integrity monitoring
-
-📊 Candidate evaluation and recruitment progress tracking
-
-⭐ Recruiter shortlisting and rejection workflow
-
-📈 Recruiter dashboard and hiring analytics
-
-🔐 JWT authentication and role-based authorization
-
-✨ Key Features
-
-👨‍💻 Candidate
-
-Feature
-
-Description
-
-Authentication
-
-Secure registration and JWT-based login
-
-Profile
-
-Manage personal information
-
-Resume
-
-Upload and manage resumes
-
-Resume Analysis
-
-Extract and analyze resume information
-
-Job Discovery
-
-Browse published jobs
-
-AI Job Matching
-
-Compare candidate resume with job requirements
-
-Applications
-
-Apply for jobs and track application status
-
-Assessment
-
-Attempt AI-generated technical questions
-
-AI Interview
-
-Complete generated interview questions
-
-Voice Answers
-
-Submit interview answers through voice
-
-Proctoring
-
-Detect interview integrity violations
-
-Results
-
-View assessment and interview results
-
-🏢 Recruiter
-
-Feature
-
-Description
-
-Dashboard
-
-View jobs, applications and shortlisted candidates
-
-Company Profile
-
-Manage company information
-
-Job Management
-
-Create, publish, close and archive jobs
-
-Candidate Management
-
-Search and review applicants
-
-AI Matching
-
-Review match score and skill analysis
-
-Candidate Evaluation
-
-Review resume, assessment and interview results
-
-Shortlisting
-
-Shortlist candidates
-
-Rejection
-
-Reject candidates
-
-Settings
-
-Manage account and password
-
-🤖 AI Recruitment Flow
-
-Candidate
-   │
-   ├── Register / Login
-   ├── Upload Resume
-   └── Resume Analysis
-            │
-            ▼
-     AI Resume Understanding
-            │
-            ▼
-      Apply for Published Job
-            │
-            ▼
-     AI Job ↔ Resume Matching
-            │
-            ├── Match Score
-            ├── Matched Skills
-            ├── Missing Skills
-            ├── Strengths
-            └── Skill Gaps
-            │
-            ▼
-      Technical Assessment
-            │
-            ▼
-         AI Interview
-            │
-            ├── Text Answers
-            ├── Voice Answers
-            └── Proctoring
-            │
-            ▼
-       Final Evaluation
-            │
-            ▼
-      Recruiter Review
-         ┌──┴──┐
-         ▼     ▼
-     Shortlist Reject
-
-🏗️ System Architecture
-
-┌──────────────────────┐
-│     React + Vite     │
-│       Frontend       │
-└──────────┬───────────┘
-           │ REST API
-           ▼
-┌──────────────────────┐
-│     Spring Boot      │
-│       Backend        │
-└───────┬────────┬─────┘
-        │        │
-        ▼        ▼
-┌────────────┐ ┌────────────────┐
-│ Aiven      │ │ Google Gemini  │
-│ MySQL      │ │ AI Services    │
-└────────────┘ └────────────────┘
-
-🛠️ Technology Stack
-
-Frontend
-
-React
-
-Vite
-
-React Router
-
-Axios
-
-Lucide React
-
-CSS
-
-Backend
-
-Java 21
-
-Spring Boot
-
-Spring Security
-
-Spring Data JPA
-
-Hibernate
-
-JWT
-
-Apache Tika
-
-Spring AI / Google Gemini
-
-Database
-
-MySQL
-
-Aiven MySQL
-
-Deployment
-
-Vercel - Frontend
-
-Render - Backend
-
-Aiven - MySQL
-
-🔐 Security
-
-HireAI uses JWT-based authentication and role-based access control.
-
-Roles
-
+---
+
+## 📌 Overview
+
+HireAI is an AI-powered recruitment platform designed to streamline the complete hiring process, from resume submission and job matching to technical assessment, AI interview, candidate evaluation, and recruiter shortlisting.
+
+The platform provides separate workflows for **Candidates** and **Recruiters**, allowing both sides to manage the recruitment process through a centralized system.
+
+### Core Capabilities
+
+- 👤 Candidate registration and profile management
+- 🏢 Recruiter/company profile management
+- 💼 Job creation, publishing, closing and archiving
+- 📄 Resume upload and AI-powered resume analysis
+- 🤖 AI-based job-resume matching
+- 📝 AI-generated technical assessments
+- 🎤 AI-powered interviews
+- 🎙️ Voice-based interview answers
+- 🛡️ Interview proctoring and integrity monitoring
+- 📊 Candidate evaluation
+- ⭐ Candidate shortlisting and rejection
+- 📈 Recruiter dashboard and hiring analytics
+- 🔐 JWT-based authentication and role-based authorization
+
+---
+
+# ✨ Key Features
+
+## 👨‍💻 Candidate Features
+
+| Feature | Description |
+|---|---|
+| 🔐 Authentication | Secure registration and JWT-based login |
+| 👤 Profile | Manage personal information and profile |
+| 📄 Resume | Upload and manage resumes |
+| 🤖 Resume Analysis | Analyze resume content using AI |
+| 💼 Job Discovery | Browse available jobs |
+| 🎯 AI Job Matching | Match resume skills with job requirements |
+| 📩 Applications | Apply for jobs and track application status |
+| 📝 Assessment | Attempt AI-generated technical assessments |
+| 🎤 AI Interview | Complete AI-generated interview questions |
+| 🎙️ Voice Answers | Submit interview answers through voice |
+| 🛡️ Proctoring | Detect interview integrity violations |
+| 📊 Results | View assessment and interview results |
+
+---
+
+## 🏢 Recruiter Features
+
+| Feature | Description |
+|---|---|
+| 📊 Dashboard | View jobs, applications and shortlisted candidates |
+| 🏢 Company Profile | Manage company information |
+| 💼 Job Management | Create, publish, close and archive jobs |
+| 👥 Candidate Management | Search and review applicants |
+| 🤖 AI Matching | View candidate-job matching information |
+| 📊 Candidate Evaluation | Review resume, assessment and interview results |
+| ⭐ Shortlisting | Shortlist suitable candidates |
+| ❌ Rejection | Reject candidates |
+| ⚙️ Settings | Manage account and password |
+
+---
+
+# 🤖 AI Recruitment Workflow
+
+```text
+                    ┌─────────────────┐
+                    │    Candidate    │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    Register / Login
+                             │
+                             ▼
+                       Upload Resume
+                             │
+                             ▼
+                  AI Resume Analysis
+                             │
+                             ▼
+                    Browse Jobs
+                             │
+                             ▼
+                     Apply for Job
+                             │
+                             ▼
+                AI Job-Resume Matching
+                             │
+                ┌────────────┼────────────┐
+                ▼            ▼            ▼
+           Match Score   Matched Skills  Skill Gaps
+                │
+                ▼
+             Assessment
+                │
+                ▼
+           AI Interview
+                │
+          ┌─────┴─────┐
+          ▼           ▼
+     Text Answers  Voice Answers
+          │           │
+          └─────┬─────┘
+                ▼
+          Interview Evaluation
+                │
+                ▼
+         Recruiter Evaluation
+                │
+          ┌─────┴─────┐
+          ▼           ▼
+      Shortlist     Reject
+```
+
+---
+
+# 🏗️ System Architecture
+
+```text
+┌─────────────────────────────┐
+│       React + Vite          │
+│          Frontend           │
+│                             │
+│  Candidate + Recruiter UI   │
+└──────────────┬──────────────┘
+               │
+               │ REST API
+               ▼
+┌─────────────────────────────┐
+│        Spring Boot          │
+│          Backend            │
+│                             │
+│  REST APIs                  │
+│  Authentication             │
+│  Business Logic             │
+│  AI Integration             │
+└──────────┬───────────┬──────┘
+           │           │
+           │           │
+           ▼           ▼
+┌────────────────┐  ┌──────────────────┐
+│  Aiven MySQL   │  │  Google Gemini   │
+│    Database    │  │   AI Services    │
+└────────────────┘  └──────────────────┘
+```
+
+---
+
+# 🛠️ Technology Stack
+
+## Frontend
+
+- ⚛️ React
+- ⚡ Vite
+- 🧭 React Router
+- 🔗 Axios
+- 🎨 CSS
+- 🎯 Lucide React
+
+## Backend
+
+- ☕ Java 21
+- 🌱 Spring Boot
+- 🔐 Spring Security
+- 🗄️ Spring Data JPA
+- 🛢️ Hibernate
+- 🔑 JWT
+- 📄 Apache Tika
+- 🤖 Spring AI
+- ✨ Google Gemini
+
+## Database
+
+- MySQL
+- Aiven MySQL
+
+## Deployment
+
+- ▲ Vercel - Frontend
+- 🚀 Render - Backend
+- ☁️ Aiven - MySQL
+
+---
+
+# 🔐 Authentication & Security
+
+HireAI uses JWT-based authentication and role-based authorization.
+
+### Supported Roles
+
+```text
 CANDIDATE
 RECRUITER
 COMPANY_ADMIN
 ADMIN
+```
 
-Sensitive values such as DB_PASSWORD, JWT_SECRET, and GEMINI_API_KEY are stored through environment variables and must never be committed to GitHub.
+The backend validates the JWT token before allowing access to protected APIs.
 
-📂 Project Structure
+Sensitive configuration values are stored using environment variables.
 
+Examples:
+
+```text
+DB_PASSWORD
+JWT_SECRET
+GEMINI_API_KEY
+```
+
+> ⚠️ Never commit passwords, API keys, JWT secrets or other credentials to GitHub.
+
+---
+
+# 📂 Project Structure
+
+```text
 AI-Recruitment-System/
 │
 ├── Backend/
 │   ├── src/
 │   │   └── main/
 │   │       ├── java/
+│   │       │   └── com/
 │   │       └── resources/
+│   │
 │   ├── Dockerfile
 │   ├── pom.xml
 │   └── ...
@@ -275,215 +241,429 @@ AI-Recruitment-System/
 ├── Frontend/
 │   ├── src/
 │   │   ├── components/
+│   │   │   ├── common/
+│   │   │   ├── candidate/
+│   │   │   └── recruiter/
+│   │   │
 │   │   ├── context/
 │   │   ├── layouts/
 │   │   ├── pages/
+│   │   │   ├── auth/
+│   │   │   ├── candidate/
+│   │   │   └── recruiter/
+│   │   │
 │   │   └── services/
+│   │
 │   ├── public/
 │   ├── package.json
 │   └── vite.config.js
 │
+├── docs/
+│   └── screenshots/
+│
 └── README.md
+```
 
-🖥️ Screenshots
+---
 
-Create this folder in the repository:
+# 📸 Screenshots
 
-docs/screenshots/
+> Screenshots are organized inside `docs/screenshots/`.
 
-Recommended screenshots:
+## 🔐 Authentication
 
-1. Login / Landing Page
+### Login Page
 
+![HireAI Login](docs/screenshots/01-login.png)
 
+---
 
-2. Candidate Dashboard
+## 👨‍💻 Candidate Dashboard
 
+![Candidate Dashboard](docs/screenshots/02-candidate-dashboard.png)
 
+---
 
-3. Jobs Listing
+## 💼 Jobs
 
+### Job Listing
 
+![Jobs Listing](docs/screenshots/03-jobs.png)
 
-4. Job Details
+### Job Details
 
+![Job Details](docs/screenshots/04-job-details.png)
 
+---
 
-5. AI Job Matching
+## 🤖 AI Job Matching
 
+![AI Job Matching](docs/screenshots/05-ai-job-matching.png)
 
+---
 
-6. Assessment
+## 📝 Technical Assessment
 
+![Assessment](docs/screenshots/06-assessment.png)
 
+---
 
-7. AI Interview
+## 🎤 AI Interview
 
+![AI Interview](docs/screenshots/07-ai-interview.png)
 
+---
 
-8. Interview Result
+## 📊 Interview Result
 
+![Interview Result](docs/screenshots/08-interview-result.png)
 
+---
 
-9. Recruiter Dashboard
+## 🏢 Recruiter Dashboard
 
+![Recruiter Dashboard](docs/screenshots/09-recruiter-dashboard.png)
 
+---
 
-10. Recruiter Candidates / AI Evaluation
+## 👥 Recruiter Candidates
 
+![Recruiter Candidates](docs/screenshots/10-recruiter-candidates.png)
 
+---
 
-11. Shortlisted Candidates
+## ⭐ Shortlisted Candidates
 
+![Shortlisted Candidates](docs/screenshots/11-shortlisted.png)
 
+---
 
-12. Candidate Evaluation
+## 📊 Candidate Evaluation
 
+![Candidate Evaluation](docs/screenshots/12-candidate-evaluation.png)
 
+---
 
-For the GitHub README, 8-10 strong screenshots are usually enough. Prioritize the Candidate Dashboard, AI Matching, Assessment, AI Interview, Recruiter Dashboard, Candidate Evaluation and Shortlisted Candidates.
+# 📸 Recommended Screenshots
 
-🔄 Candidate Workflow
+For a professional GitHub repository, you don't need to upload every single screen.
 
-Register → Login → Profile → Upload Resume
-        → AI Resume Analysis → Browse Jobs
-        → Apply → AI Job Matching
-        → Assessment → AI Interview
-        → Evaluation → Application Result
+I recommend keeping these **8 important screenshots**:
 
-🔄 Recruiter Workflow
+```text
+01-login.png
+02-candidate-dashboard.png
+05-ai-job-matching.png
+06-assessment.png
+07-ai-interview.png
+09-recruiter-dashboard.png
+10-recruiter-candidates.png
+11-shortlisted.png
+12-candidate-evaluation.png
+```
 
-Login → Company Profile → Create Job → Publish
-     → Receive Applications → AI Candidate Matching
-     → Review Candidate → Assessment Result
-     → Interview Result → Shortlist / Reject
+### Screenshot Guidelines
 
-⚙️ Local Setup
+Use screenshots around:
 
-Prerequisites
+```text
+1440 × 900
+```
 
-Java 21+
+Keep:
 
-Maven
+- Consistent browser zoom
+- Consistent UI theme
+- Realistic demo data
+- Clean dashboard state
+- No passwords
+- No API keys
+- No JWT tokens
+- No personal/private information
 
-Node.js 18+
+---
 
-npm
+# 🔄 Candidate Workflow
 
-MySQL
+```text
+Register
+   ↓
+Login
+   ↓
+Complete Profile
+   ↓
+Upload Resume
+   ↓
+AI Resume Analysis
+   ↓
+Browse Jobs
+   ↓
+Apply
+   ↓
+AI Job Matching
+   ↓
+Technical Assessment
+   ↓
+AI Interview
+   ↓
+Interview Evaluation
+   ↓
+Application Result
+```
 
-Backend
+---
 
-cd Backend
+# 🔄 Recruiter Workflow
+
+```text
+Register / Login
+       ↓
+Company Profile
+       ↓
+Create Job
+       ↓
+Publish Job
+       ↓
+Receive Applications
+       ↓
+AI Candidate Matching
+       ↓
+Review Candidate
+       ↓
+Assessment Result
+       ↓
+Interview Result
+       ↓
+Shortlist / Reject
+```
+
+---
+
+# ⚙️ Local Setup
+
+## Prerequisites
+
+Make sure you have installed:
+
+- Java 21+
+- Maven
+- Node.js 18+
+- npm
+- MySQL
+
+---
+
+## Backend Setup
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Aniket8023/AI-Recruitment-System.git
+```
+
+Navigate to backend:
+
+```bash
+cd AI-Recruitment-System/Backend
+```
+
+Build the project:
+
+```bash
 mvn clean install
+```
+
+Run Spring Boot:
+
+```bash
 mvn spring-boot:run
+```
 
-Local backend:
+Backend will run locally on:
 
+```text
 http://localhost:8081
+```
 
-Frontend
+---
 
-cd Frontend
+# 💻 Frontend Setup
+
+Navigate to frontend:
+
+```bash
+cd AI-Recruitment-System/Frontend
+```
+
+Install dependencies:
+
+```bash
 npm install
+```
+
+Start development server:
+
+```bash
 npm run dev
+```
 
-Local frontend:
+Frontend will run locally on:
 
+```text
 http://localhost:5173
+```
 
-🔑 Environment Variables
+---
 
-Backend
+# 🔑 Environment Variables
 
-Configure:
+## Backend
 
+Configure the following environment variables:
+
+```text
 DB_URL
 DB_USERNAME
 DB_PASSWORD
 JWT_SECRET
 GEMINI_API_KEY
+```
 
-Frontend
+Example:
 
-Create Frontend/.env:
+```properties
+server.port=${PORT:8081}
 
+spring.datasource.url=${DB_URL}
+spring.datasource.username=${DB_USERNAME}
+spring.datasource.password=${DB_PASSWORD}
+
+jwt.secret=${JWT_SECRET}
+
+spring.ai.google.genai.api-key=${GEMINI_API_KEY}
+```
+
+---
+
+## Frontend
+
+Create:
+
+```text
+Frontend/.env
+```
+
+For local development:
+
+```env
 VITE_API_BASE_URL=http://localhost:8081/api/v1
+```
 
-Production:
+For production:
 
+```env
 VITE_API_BASE_URL=https://ai-recruitment-system-55kd.onrender.com/api/v1
+```
 
-Never commit secret .env files.
+> ⚠️ Frontend environment variables are exposed to the browser. Never put private secrets such as database passwords or Gemini API keys in the frontend.
 
-🚀 Deployment
+---
 
-React + Vite
-     │
-     ▼
-  Vercel
-     │
-     ▼
-Spring Boot API
-     │
-     ├──────────► Google Gemini
-     │
-     ▼
-Aiven MySQL
+# 🚀 Deployment Architecture
 
-Live URLs
+```text
+                 🌐 User
+                    │
+                    ▼
+        ┌─────────────────────┐
+        │      Vercel         │
+        │   React + Vite      │
+        └──────────┬──────────┘
+                   │
+                   │ HTTPS REST API
+                   ▼
+        ┌─────────────────────┐
+        │      Render         │
+        │   Spring Boot API   │
+        └─────────┬───────────┘
+                  │
+          ┌───────┴────────┐
+          │                │
+          ▼                ▼
+ ┌────────────────┐  ┌────────────────┐
+ │  Aiven MySQL   │  │ Google Gemini  │
+ │    Database    │  │       AI       │
+ └────────────────┘  └────────────────┘
+```
 
-Frontend: https://hireai.vercel.app
+---
 
-Backend: https://ai-recruitment-system-55kd.onrender.com
+# 🌐 Live Application
 
-🎯 Project Objectives
+### Frontend
 
-Reduce manual effort in candidate screening
+🔗 https://hireai.vercel.app
 
-Automate resume and job matching
+### Backend
 
-Generate structured assessments and interview questions
+🔗 https://ai-recruitment-system-55kd.onrender.com
 
-Provide consistent candidate evaluation
+### Source Code
 
-Give recruiters a centralized candidate review workflow
+🔗 https://github.com/Aniket8023/AI-Recruitment-System
 
-Track recruitment progress from application to final decision
+---
 
-🔮 Future Enhancements
+# 🎯 Project Objectives
 
-📧 Automated email notifications
+HireAI was developed with the following objectives:
 
-📅 Interview scheduling
+- Reduce manual effort in candidate screening
+- Automate resume and job matching
+- Generate structured technical assessments
+- Generate AI-based interview questions
+- Support voice-based interview answers
+- Provide structured candidate evaluation
+- Help recruiters review candidates through a centralized dashboard
+- Track recruitment progress from application to final decision
 
-📱 Mobile application
+---
 
-📊 Advanced recruitment analytics
+# 🔮 Future Enhancements
 
-🔔 Real-time notifications
+Possible future improvements include:
 
-📄 More advanced resume parsing
+- 📧 Automated email notifications
+- 📅 Interview scheduling
+- 📱 Mobile application
+- 📊 Advanced recruitment analytics
+- 🔔 Real-time notifications
+- 📄 Advanced resume parsing
+- 👨‍💼 Dedicated admin approval workflow
+- 📈 Recruitment funnel analytics
+- 🔔 Candidate and recruiter notification center
 
-👨‍💼 Dedicated admin approval workflow
+---
 
-📈 Recruitment funnel analytics
+# 👨‍💻 Author
 
-👨‍💻 Author
+## Aniket Vijay Solanke
 
-Aniket Vijay Solanke
+**Full Stack Java Developer**
 
-Full Stack Java Developer
+### Connect With Me
 
-GitHub: https://github.com/Aniket8023
+- 🐙 GitHub: https://github.com/Aniket8023
+- 💼 LinkedIn: Add your LinkedIn URL
+- 🌐 Portfolio: Add your portfolio URL
 
-LinkedIn: Add your LinkedIn profile
+---
 
-Portfolio: Add your portfolio URL
+# ⭐ Support
 
-⭐ Support
+If you find HireAI useful or interesting, consider giving the repository a ⭐ on GitHub.
 
-If you find HireAI useful, consider giving the repository a ⭐.
+---
 
 <p align="center">
   Built with ❤️ using React, Spring Boot, MySQL and AI
